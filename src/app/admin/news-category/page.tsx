@@ -1,204 +1,288 @@
-'use client'
-import React, { useEffect, useState } from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
 import Sidebar from "@/Components/Sidebar";
-import TokenTimer from "@/Components/TokenTimer";
 import Link from "next/link";
-import {PencilIcon, PlusCircleIcon, TrashIcon} from "@heroicons/react/16/solid";
-
+import { PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ClipLoader } from "react-spinners";
 type DataItem = {
-    id: string;
-    category_tk: string;
-    category_en: string;
-    category_ru: string;
+  id: string;
+  category_tk: string;
+  category_en: string;
+  category_ru: string;
 };
 
 const NewsCategory = () => {
-    const [categories, setCategories] = useState<DataItem[]>([]);
-    const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<DataItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [idsToDelete, setIdsToDelete] = useState<string[]>([]);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [deleteLoading, setDeleteLoading] = useState(false);
+  const router = useRouter();
 
-    const router = useRouter();
-
-    useEffect(() => {
-        const fetchLocations = async () => {
-            try {
-                const token = localStorage.getItem('auth_token');
-                if (!token) {
-                    router.push('/');
-                    return;
-                }
-
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/news-category`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                setCategories(response.data);
-            } catch (err) {
-                const axiosError = err as AxiosError;
-                console.error(axiosError);
-                setError("Ошибка при получении данных");
-
-                if (axios.isAxiosError(axiosError) && axiosError.response?.status === 401) {
-                    router.push("/");
-                }
-            }
-        };
-
-        fetchLocations();
-    }, [router]);
-
-    const openDeleteModal = (id: string) => {
-        setSelectedId(id);
-        setIsModalOpen(true);
-    };
-
-    const closeModal = () => {
-        if (deleteLoading) return;
-        setIsModalOpen(false);
-        setSelectedId(null);
-    };
-
-    const handleDelete = async () => {
-        if (!selectedId) return;
-
-        try {
-            setDeleteLoading(true);
-            const token = localStorage.getItem('auth_token');
-
-            await axios.delete(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/news-category/${selectedId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-
-            setCategories(prev => prev.filter(item => item.id !== selectedId));
-        } catch (err) {
-            console.error(err);
-            setError("Ошибка при удалении");
-        } finally {
-            setDeleteLoading(false);
-            closeModal();
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        if (!token) {
+          router.push("/");
+          return;
         }
+
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/news-category`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        setCategories(response.data);
+      } catch (err) {
+        const axiosError = err as AxiosError;
+        console.error(axiosError);
+        setError("Ошибка при получении данных");
+
+        if (
+          axios.isAxiosError(axiosError) &&
+          axiosError.response?.status === 401
+        ) {
+          router.push("/");
+        }
+      }
     };
 
-    if (error) {
-        return <div>{error}</div>;
-    }
+    fetchCategories();
+  }, [router]);
 
-    return (
-        <div className="flex bg-gray-200">
-            <Sidebar />
-            <div className="flex-1 p-10 ml-62">
-                <TokenTimer />
-                <div className="mt-8">
-                    <div className="w-full flex justify-between">
-                        <h2 className="text-2xl font-bold mb-4">News categories</h2>
-                        <Link href="/admin/news-category/add-category"
-                              className="bg text-white h-fit py-2 px-8 rounded-md cursor-pointer flex items-center">
-                            <PlusCircleIcon className="size-6" color="#ffffff" />
-                            <div className="ml-2">Add</div>
-                        </Link>
-                    </div>
-                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                        <thead>
-                        <tr>
-                            <th className="py-2 px-4 border-b-2 border-gray-200 text-left text-gray-600">Turkmen</th>
-                            <th className="py-2 px-4 border-b-2 border-gray-200 text-left text-gray-600">English</th>
-                            <th className="py-2 px-4 border-b-2 border-gray-200 text-left text-gray-600">Russian</th>
-                            <th className="py-2 px-4 border-b-2 border-gray-200 text-left text-gray-600">Edit</th>
-                            <th className="py-2 px-4 border-b-2 border-gray-200 text-left text-gray-600">Delete</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {categories.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} className="text-center py-4">No data available</td>
-                            </tr>
-                        ) : (
-                            categories.map((category) => (
-                                <tr key={category.id}>
-                                    <td className="py-4 px-4 border-b border-gray-200">
-                                        <div dangerouslySetInnerHTML={{__html: category.category_tk}}/>
-                                    </td>
-                                    <td className="py-4 px-4 border-b border-gray-200">
-                                        <div dangerouslySetInnerHTML={{__html: category.category_en}}/>
-                                    </td>
-                                    <td className="py-4 px-4 border-b border-gray-200">
-                                        <div dangerouslySetInnerHTML={{__html: category.category_ru}}/>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <Link
-                                            href={`/admin/news-category/edit-category/${category.id}`}
-                                            className="inline-flex items-center bg-gray-800 text-white px-3 py-2 rounded"
-                                        >
-                                            <PencilIcon className="w-4 h-4 mr-2"/>
-                                            Edit
-                                        </Link>
-                                    </td>
+  const allSelected = useMemo(
+    () => categories.length > 0 && selectedIds.size === categories.length,
+    [categories, selectedIds],
+  );
 
-                                    <td className="py-4 px-4">
-                                        <button
-                                            onClick={() => openDeleteModal(category.id)}
-                                            className="inline-flex items-center bg-red-600 text-white px-3 py-2 rounded"
-                                        >
-                                            <TrashIcon className="w-4 h-4 mr-2"/>
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div
-                        className="absolute inset-0 bg-black/50"
-                        onClick={closeModal}
-                    />
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
-                    <div className="relative bg-white rounded-xl p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-3">
-                            Delete project style
-                        </h3>
-
-                        <p className="text-gray-600 mb-6">
-                            Are you sure you want to delete this item?
-                            This action cannot be undone.
-                        </p>
-
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={closeModal}
-                                disabled={deleteLoading}
-                                className="px-4 py-2 border rounded"
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                onClick={handleDelete}
-                                disabled={deleteLoading}
-                                className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-60"
-                            >
-                                {deleteLoading ? "Deleting..." : "Delete"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+  const toggleAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === categories.length
+        ? new Set()
+        : new Set(categories.map((c) => c.id)),
     );
+  };
+
+  const openDeleteModal = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setIdsToDelete(ids);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (deleteLoading) return;
+    setIsModalOpen(false);
+    setIdsToDelete([]);
+  };
+
+  const handleDelete = async () => {
+    if (idsToDelete.length === 0) return;
+
+    try {
+      setDeleteLoading(true);
+      const token = localStorage.getItem("auth_token");
+
+      await Promise.all(
+        idsToDelete.map((delId) =>
+          axios.delete(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/news-category/${delId}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        ),
+      );
+
+      setCategories((prev) =>
+        prev.filter((item) => !idsToDelete.includes(item.id)),
+      );
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        idsToDelete.forEach((id) => next.delete(id));
+        return next;
+      });
+    } catch (err) {
+      console.error(err);
+      setError("Ошибка при удалении");
+    } finally {
+      setDeleteLoading(false);
+      setIsModalOpen(false);
+      setIdsToDelete([]);
+    }
+  };
+
+  if (error) {
+    return <div className="p-6 text-red-600">{error}</div>;
+  }
+
+  const deleteCount = idsToDelete.length;
+
+  return (
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen min-h-screen">
+        <div className="mt-8 bg-white">
+          <div className="flex items-center justify-between px-6 py-4">
+            <h2 className="text-2xl font-semibold">News categories</h2>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/admin/news-category/add-category"
+                className="flex items-center gap-2 rounded-md bg-[#708DB8] px-4 py-2 text-white transition hover:bg-[#5f7ba6]"
+              >
+                <PlusIcon className="size-5" />
+                <span className="text-sm">Add</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => openDeleteModal(Array.from(selectedIds))}
+                disabled={selectedIds.size === 0}
+                className="flex cursor-pointer items-center gap-2 rounded-md bg-[#708DB8] px-4 py-2 text-white transition hover:bg-[#5f7ba6] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <TrashIcon className="size-5" />
+                <span className="text-sm">Delete</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-md border border-black">
+            <table className="min-w-full">
+              <thead className="bg-[#F7F9FC]">
+                <tr className="text-left text-sm text-black">
+                  <th className="w-12 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      className="size-4 cursor-pointer accent-[#708DB8]"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                    />
+                  </th>
+                  <th className="text-center px-4 py-3 font-semibold border-r border-[#D8D8D8] border-dashed">
+                    Turkmen
+                  </th>
+                  <th className="text-center px-4 py-3 font-semibold border-r border-[#D8D8D8] border-dashed">
+                    English
+                  </th>
+                  <th className="text-center px-4 py-3 font-semibold border-r border-[#D8D8D8] border-dashed">
+                    Russian
+                  </th>
+                  <th className="text-center px-4 py-3 font-semibold">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                      No data available
+                    </td>
+                  </tr>
+                ) : (
+                  categories.map((category) => (
+                    <tr
+                      key={category.id}
+                      className="border-t border-[#D9D9D9] text-sm"
+                    >
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          className="size-4 cursor-pointer accent-[#708DB8]"
+                          checked={selectedIds.has(category.id)}
+                          onChange={() => toggleOne(category.id)}
+                        />
+                      </td>
+                      <td className="text-center px-4 py-4 border-r border-[#D8D8D8] border-dashed">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: category.category_tk,
+                          }}
+                        />
+                      </td>
+                      <td className="text-center px-4 py-4 border-r border-[#D8D8D8] border-dashed">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: category.category_en,
+                          }}
+                        />
+                      </td>
+                      <td className="text-center px-4 py-4 border-r border-[#D8D8D8] border-dashed">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: category.category_ru,
+                          }}
+                        />
+                      </td>
+                      <td className="text-center px-4 py-4">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <Link
+                            href={`/admin/news-category/edit-category/${category.id}`}
+                            className="inline-flex items-center gap-2 rounded-md border border-[#708DB8] px-4 py-1.5 text-[#708DB8] transition hover:bg-[#F7F9FC]"
+                          >
+                            <PencilIcon className="size-4" />
+                            <span>Edit</span>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-md">
+            <h2 className="mb-4 text-xl font-semibold">
+              {deleteCount === 1
+                ? "Delete category?"
+                : `Delete ${deleteCount} categories?`}
+            </h2>
+            <p className="mb-6 text-gray-600">
+              Are you sure? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={deleteLoading}
+                className="rounded bg-gray-300 px-4 py-2 hover:bg-gray-400 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
+              >
+                {deleteLoading ? (
+                  <ClipLoader size={80} color="#708DB8" />
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default NewsCategory;

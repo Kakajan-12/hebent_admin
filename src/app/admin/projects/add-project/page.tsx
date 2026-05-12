@@ -1,673 +1,571 @@
-'use client';
+"use client";
 
-import React, {useState, useEffect} from 'react';
-import {useRouter} from 'next/navigation';
-import Sidebar from '@/Components/Sidebar';
-import TokenTimer from '@/Components/TokenTimer';
-import TipTapEditor from '@/Components/TipTapEditor';
-import ImageUploader from "@/app/admin/projects/add-project/ImageUploader";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { EyeIcon } from "@heroicons/react/24/outline";
+import { GoChevronRight } from "react-icons/go";
+import Sidebar from "@/Components/Sidebar";
+import TipTapEditor from "@/Components/TipTapEditor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
+import { useApi } from "@/hooks/useApi";
+import ImageUploaderHero from "./ImageUploaderHero";
+import ImageUploader from "@/app/admin/slider/add-slider/ImageUploader";
+import { ClipLoader } from "react-spinners";
+import { TrashIcon } from "lucide-react";
+
+const MAX_GALLERY_FILES = 20;
+
+type ProjectDetail = {
+  title_tk: string;
+  title_en: string;
+  title_ru: string;
+  text_tk: string;
+  text_en: string;
+  text_ru: string;
+};
+
+const createEmptyDetail = (): ProjectDetail => ({
+  title_tk: "",
+  title_en: "",
+  title_ru: "",
+  text_tk: "",
+  text_en: "",
+  text_ru: "",
+});
+
+const hasText = (value: string) =>
+  value
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim().length > 0;
 
 const AddProject = () => {
-    const [isClient, setIsClient] = useState(false);
-    const [image, setImage] = useState<File | null>(null);
-    const [title_tk, setTitleTk] = useState('');
-    const [title_en, setTitleEn] = useState('');
-    const [title_ru, setTitleRu] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [area, setArea] = useState('');
-    const [client_tk, setClientTk] = useState('');
-    const [client_en, setClientEn] = useState('');
-    const [client_ru, setClientRu] = useState('');
-    const [first_section_tk, setFirstSectionTk] = useState('');
-    const [first_section_en, setFirstSectionEn] = useState('');
-    const [first_section_ru, setFirstSectionRu] = useState('');
-    const [second_section_tk, setSecondSectionTk] = useState('');
-    const [second_section_en, setSecondSectionEn] = useState('');
-    const [second_section_ru, setSecondSectionRu] = useState('');
-    const [third_section_tk, setThirdSectionTk] = useState('');
-    const [third_section_en, setThirdSectionEn] = useState('');
-    const [third_section_ru, setThirdSectionRu] = useState('');
-    const [architect_tk, setArchitectTk] = useState('');
-    const [architect_en, setArchitectEn] = useState('');
-    const [architect_ru, setArchitectRu] = useState('');
-    const [lead_designer_tk, setLeadDesignerTk] = useState('');
-    const [lead_designer_en, setLeadDesignerEn] = useState('');
-    const [lead_designer_ru, setLeadDesignerRu] = useState('');
-    const [interior_designer_tk, setInteriorDesignerTk] = useState('');
-    const [interior_designer_en, setInteriorDesignerEn] = useState('');
-    const [interior_designer_ru, setInteriorDesignerRu] = useState('');
-    const [p_manager_tk, setPManagerTk] = useState('');
-    const [p_manager_en, setPManagerEn] = useState('');
-    const [p_manager_ru, setPManagerRu] = useState('');
-    const [location_id, setLocationId] = useState('');
-    const [type_id, setTypeId] = useState('');
-    const [style_id, setStyleId] = useState('');
-    const [types, setTypes] = useState<
-        { id: number; type_tk: string; type_en: string; type_ru: string }[]
-    >([]);
-    const [style, setStyle] = useState<
-        { id: number; style_tk: string; style_en: string; style_ru: string }[]
-    >([]);
-    const [location, setLocation] = useState<
-        { id: number; location_tk: string; location_en: string; location_ru: string }[]
-    >([]);
-    const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
-    const [drawingFiles, setDrawingFiles] = useState<File[]>([]);
+  const router = useRouter();
+  const api = useApi();
 
+  const [isClient, setIsClient] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [titleTk, setTitleTk] = useState("");
+  const [titleEn, setTitleEn] = useState("");
+  const [titleRu, setTitleRu] = useState("");
+  const [textTk, setTextTk] = useState("");
+  const [textEn, setTextEn] = useState("");
+  const [textRu, setTextRu] = useState("");
+  const [details, setDetails] = useState<ProjectDetail[]>([]);
+  const [openDetails, setOpenDetails] = useState<boolean[]>([]);
+  const [costumerTk, setCostumerTk] = useState("");
+  const [costumerEn, setCostumerEn] = useState("");
+  const [costumerRu, setCostumerRu] = useState("");
+  const [website, setWebsite] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const router = useRouter();
+  const imageObjectUrls = useMemo(
+    () => imageFiles.map((file) => URL.createObjectURL(file)),
+    [imageFiles],
+  );
 
-    useEffect(() => {
-        setIsClient(true)
-        const fetchData = async () => {
-            try {
-                const [typesRes, styleRes, locationRes] = await Promise.all([
-                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/project-type`),
-                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/project-style`),
-                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/project-location`)
-                ]);
-                const [typesData, styleData, locationData] = await Promise.all([
-                    typesRes.json(),
-                    styleRes.json(),
-                    locationRes.json()
-                ]);
+  const galleryObjectUrls = useMemo(
+    () => galleryFiles.map((file) => URL.createObjectURL(file)),
+    [galleryFiles],
+  );
 
-                setTypes(typesData);
-                setStyle(styleData);
-                setLocation(locationData)
-            } catch (err) {
-                console.error('Ошибка при загрузке данных:', err);
-            }
-        };
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-        fetchData();
-    }, []);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.error('Нет токена. Пользователь не авторизован.');
-            return;
-        }
-
-        const formData = new FormData();
-        if (image) formData.append('image', image);
-        formData.append('title_tk', title_tk ?? '');
-        formData.append('title_en', title_en ?? '');
-        formData.append('title_ru', title_ru ?? '');
-        formData.append('end_date', endDate ?? '');
-        formData.append('area', area ?? '');
-        formData.append('client_tk', client_tk ?? '');
-        formData.append('client_en', client_en ?? '');
-        formData.append('client_ru', client_ru ?? '');
-        formData.append('start_date', startDate ?? '');
-        formData.append('first_section_tk', first_section_tk ?? '');
-        formData.append('first_section_en', first_section_en ?? '');
-        formData.append('first_section_ru', first_section_ru ?? '');
-        formData.append('second_section_tk', second_section_tk ?? '');
-        formData.append('second_section_en', second_section_en ?? '');
-        formData.append('second_section_ru', second_section_ru ?? '');
-        formData.append('third_section_tk', third_section_tk ?? '');
-        formData.append('third_section_en', third_section_en ?? '');
-        formData.append('third_section_ru', third_section_ru ?? '');
-        formData.append('architect_tk', architect_tk ?? '');
-        formData.append('architect_en', architect_en ?? '');
-        formData.append('architect_ru', architect_ru ?? '');
-        formData.append('lead_designer_tk', lead_designer_tk ?? '');
-        formData.append('lead_designer_en', lead_designer_en ?? '');
-        formData.append('lead_designer_ru', lead_designer_ru ?? '');
-        formData.append('interior_designer_tk', interior_designer_tk ?? '');
-        formData.append('interior_designer_en', interior_designer_en ?? '');
-        formData.append('interior_designer_ru', interior_designer_ru ?? '');
-        formData.append('p_manager_tk', p_manager_tk ?? '');
-        formData.append('p_manager_en', p_manager_en ?? '');
-        formData.append('p_manager_ru', p_manager_ru ?? '');
-        formData.append('location_id', location_id ?? '');
-        formData.append('type_id', type_id ?? '');
-        formData.append('style_id', style_id ?? '');
-
-        for (const file of galleryFiles) {
-            formData.append('gallery', file);
-        }
-
-        for (const file of drawingFiles) {
-            formData.append('drawings', file);
-        }
-
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-                body: formData,
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('добавлен!', data);
-                setImage(null);
-                setTitleTk('');
-                setTitleEn('');
-                setTitleRu('');
-                setEndDate('');
-                setStartDate('');
-                setArea('');
-                setClientTk('');
-                setClientEn('');
-                setClientRu('');
-                setFirstSectionTk('');
-                setFirstSectionEn('');
-                setFirstSectionRu('');
-                setSecondSectionTk('');
-                setSecondSectionEn('');
-                setSecondSectionRu('');
-                setThirdSectionTk('');
-                setThirdSectionEn('');
-                setThirdSectionRu('');
-                setArchitectTk('');
-                setArchitectEn('');
-                setArchitectRu('');
-                setLeadDesignerTk('');
-                setLeadDesignerEn('');
-                setLeadDesignerRu('');
-                setInteriorDesignerTk('')
-                setInteriorDesignerEn('')
-                setInteriorDesignerRu('')
-                setPManagerTk('');
-                setPManagerEn('');
-                setPManagerRu('');
-                setTypeId('');
-                setStyleId('');
-                setLocationId('');
-                router.push('/admin/projects');
-            } else {
-                const errorText = await response.text();
-                console.error('Ошибка при добавлении:', errorText);
-            }
-        } catch (error) {
-            console.error('Ошибка запроса', error);
-        }
+  useEffect(() => {
+    const urls = [...imageObjectUrls, ...galleryObjectUrls];
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
     };
+  }, [imageObjectUrls, galleryObjectUrls]);
 
-    return (
-        <div className="flex bg-gray-200">
-            <Sidebar/>
-            <div className="flex-1 p-10 ml-62">
-                <TokenTimer/>
-                <div className="mt-8">
-                    <form
-                        onSubmit={handleSubmit}
-                        className="w-full mx-auto p-6 border border-gray-300 rounded-lg shadow-lg bg-white"
-                    >
-                        <h2 className="text-2xl font-bold mb-4 text-left">Add project</h2>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-                        <div className="mb-4 flex space-x-4">
-                            <div className="w-full">
-                                <label htmlFor="image" className="block text-gray-700 font-semibold mb-2">
-                                    Image:
-                                </label>
-                                <input
-                                    type="file"
-                                    id="image"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            setImage(e.target.files[0]);
-                                        }
-                                    }}
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-150"
-                                />
-                            </div>
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Select Type:
-                                </label>
-                                <select
-                                    id="project_type"
-                                    name="type_id"
-                                    value={type_id}
-                                    onChange={(e) => setTypeId(e.target.value)}
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                >
-                                    <option value="">Select type</option>
-                                    {types.map((type) => (
-                                        <option key={type.id} value={type.id}>
-                                            {type.type_en}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Select style:
-                                </label>
-                                <select
-                                    id="project_style"
-                                    name="style_id"
-                                    value={style_id}
-                                    onChange={(e) => setStyleId(e.target.value)}
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                >
-                                    <option value="">Select category</option>
-                                    {style.map((style) => (
-                                        <option key={style.id} value={style.id}>
-                                            {style.style_en}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Select Location:
-                                </label>
-                                <select
-                                    id="location_id"
-                                    name="location_id"
-                                    value={location_id}
-                                    onChange={(e) => setLocationId(e.target.value)}
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                >
-                                    <option value="">Select location</option>
-                                    {location.map((location) => (
-                                        <option key={location.id} value={location.id}>
-                                            {location.location_en}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="mb-4 flex space-x-4">
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Start year:
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear() + 10}
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                    placeholder="2020"
-                                />
-                            </div>
+    const requiredFields = [
+      { label: "Turkmen title", value: titleTk },
+      { label: "English title", value: titleEn },
+      { label: "Russian title", value: titleRu },
+      { label: "Turkmen text", value: textTk },
+      { label: "English text", value: textEn },
+      { label: "Russian text", value: textRu },
+      { label: "Turkmen costumer", value: costumerTk },
+      { label: "English costumer", value: costumerEn },
+      { label: "Russian costumer", value: costumerRu },
+      { label: "Website", value: website },
+    ];
 
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    End year:
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1900"
-                                    max={new Date().getFullYear() + 10}
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                    placeholder="2024"
-                                />
-                            </div>
+    const image = imageFiles[0];
 
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Area:
-                                </label>
-                                <input
-                                    value={area}
-                                    onChange={(e) => setArea(e.target.value)}
-                                    type="text"
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                />
-                            </div>
-                        </div>
+    if (!image) {
+      setError("Please select an image.");
+      return;
+    }
 
-                        {isClient && (
-                            <>
-                                <div className="tabs tabs-lift">
-                                    <input type="radio" name="my_tabs_3" className="tab" aria-label="Turkmen"
-                                           defaultChecked/>
-                                    <div className="tab-content bg-base-100 border-base-300 p-6">
-                                        <div className="mb-4">
-                                            <label className="block text-gray-700 font-semibold mb-2">Title:</label>
-                                            <TipTapEditor
-                                                content={title_tk}
-                                                onChange={(content) => setTitleTk(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Client:</label>
-                                            <input
-                                                value={client_tk}
-                                                onChange={(e) => setClientTk(e.target.value)}
-                                                type="text"
-                                                required
-                                                className="border border-gray-300 rounded p-2 w-full"
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">First
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={first_section_tk}
-                                                onChange={(content) => setFirstSectionTk(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Second
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={second_section_tk}
-                                                onChange={(content) => setSecondSectionTk(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Third
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={third_section_tk}
-                                                onChange={(content) => setThirdSectionTk(content)}
-                                            />
-                                        </div>
-                                        <div className="flex w-full space-x-4">
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Architect:</label>
-                                                <input
-                                                    content={architect_tk}
-                                                    onChange={(e) => setArchitectTk(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Lead
-                                                    designer:</label>
-                                                <input
-                                                    value={lead_designer_tk}
-                                                    onChange={(e) => setLeadDesignerTk(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Interior
-                                                    designer:</label>
-                                                <input
-                                                    value={interior_designer_tk}
-                                                    onChange={(e) => setInteriorDesignerTk(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Project
-                                                    manager:</label>
-                                                <input
-                                                    value={p_manager_tk}
-                                                    onChange={(e) => setPManagerTk(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+    if (galleryFiles.length === 0) {
+      setError("Please select at least one gallery photo.");
+      return;
+    }
 
-                                    <input type="radio" name="my_tabs_3" className="tab" aria-label="English"/>
-                                    <div className="tab-content bg-base-100 border-base-300 p-6">
-                                        <div className="mb-4">
-                                            <label className="block text-gray-700 font-semibold mb-2">Title:</label>
-                                            <TipTapEditor
-                                                content={title_en}
-                                                onChange={(content) => setTitleEn(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Client:</label>
-                                            <input
-                                                value={client_en}
-                                                onChange={(e) => setClientEn(e.target.value)}
-                                                type="text"
-                                                required
-                                                className="border border-gray-300 rounded p-2 w-full"
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">First
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={first_section_en}
-                                                onChange={(content) => setFirstSectionEn(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Second
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={second_section_en}
-                                                onChange={(content) => setSecondSectionEn(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Third
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={third_section_en}
-                                                onChange={(content) => setThirdSectionEn(content)}
-                                            />
-                                        </div>
-                                        <div className="flex w-full space-x-4">
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Architect:</label>
-                                                <input
-                                                    content={architect_en}
-                                                    onChange={(e) => setArchitectEn(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Lead
-                                                    designer:</label>
-                                                <input
-                                                    value={lead_designer_en}
-                                                    onChange={(e) => setLeadDesignerEn(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Interior
-                                                    designer:</label>
-                                                <input
-                                                    value={interior_designer_en}
-                                                    onChange={(e) => setInteriorDesignerEn(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Project
-                                                    manager:</label>
-                                                <input
-                                                    value={p_manager_en}
-                                                    onChange={(e) => setPManagerEn(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+    if (details.length === 0) {
+      setError("Please add at least one detail.");
+      return;
+    }
 
-                                    <input type="radio" name="my_tabs_3" className="tab" aria-label="Russian"/>
-                                    <div className="tab-content bg-base-100 border-base-300 p-6">
-                                        <div className="mb-4">
-                                            <label className="block text-gray-700 font-semibold mb-2">Title:</label>
-                                            <TipTapEditor
-                                                content={title_ru}
-                                                onChange={(content) => setTitleRu(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Client:</label>
-                                            <input
-                                                value={client_ru}
-                                                onChange={(e) => setClientRu(e.target.value)}
-                                                type="text"
-                                                required
-                                                className="border border-gray-300 rounded p-2 w-full"
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">First
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={first_section_ru}
-                                                onChange={(content) => setFirstSectionRu(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Second
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={second_section_ru}
-                                                onChange={(content) => setSecondSectionRu(content)}
-                                            />
-                                        </div>
-                                        <div className="mb-4">
-                                            <label
-                                                className="block text-gray-700 font-semibold mb-2">Third
-                                                section:</label>
-                                            <TipTapEditor
-                                                content={third_section_ru}
-                                                onChange={(content) => setThirdSectionRu(content)}
-                                            />
-                                        </div>
-                                        <div className="flex w-full space-x-4">
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Architect:</label>
-                                                <input
-                                                    content={architect_ru}
-                                                    onChange={(e) => setArchitectRu(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Lead
-                                                    designer:</label>
-                                                <input
-                                                    value={lead_designer_ru}
-                                                    onChange={(e) => setLeadDesignerRu(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Interior
-                                                    designer:</label>
-                                                <input
-                                                    value={interior_designer_ru}
-                                                    onChange={(e) => setInteriorDesignerRu(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                            <div className="mb-4 w-full">
-                                                <label
-                                                    className="block text-gray-700 font-semibold mb-2">Project
-                                                    manager:</label>
-                                                <input
-                                                    value={p_manager_ru}
-                                                    onChange={(e) => setPManagerRu(e.target.value)}
-                                                    type="text"
-                                                    required
-                                                    className="border border-gray-300 rounded p-2 w-full"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <input type="radio" name="my_tabs_3" className="tab" aria-label="Gallery"/>
-                                    <div className="tab-content bg-base-100 border-base-300 p-6">
-                                        <div className="mb-4 w-full">
-                                            <label className="block text-gray-700 font-semibold mb-2">
-                                                Gallery:
-                                            </label>
-                                            <ImageUploader
-                                                label="Gallery"
-                                                files={galleryFiles}
-                                                setFiles={setGalleryFiles}
-                                            />
+    const emptyField = requiredFields.find((field) => !hasText(field.value));
+    if (emptyField) {
+      setError(`Please fill in ${emptyField.label}.`);
+      return;
+    }
 
-                                        </div>
-                                        <div className="mb-4 w-full">
-                                            <label className="block text-gray-700 font-semibold mb-2">
-                                                Drawing:
-                                            </label>
+    const emptyDetail = details
+      .flatMap((detail, index) => [
+        { label: `Detail ${index + 1} Turkmen title`, value: detail.title_tk },
+        { label: `Detail ${index + 1} English title`, value: detail.title_en },
+        { label: `Detail ${index + 1} Russian title`, value: detail.title_ru },
+        { label: `Detail ${index + 1} Turkmen text`, value: detail.text_tk },
+        { label: `Detail ${index + 1} English text`, value: detail.text_en },
+        { label: `Detail ${index + 1} Russian text`, value: detail.text_ru },
+      ])
+      .find((field) => !hasText(field.value));
 
-                                            <ImageUploader
-                                                label="Drawings"
-                                                files={drawingFiles}
-                                                setFiles={setDrawingFiles}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+    if (emptyDetail) {
+      setError(`Please fill in ${emptyDetail.label}.`);
+      return;
+    }
 
-                        <button
-                            type="submit"
-                            className="w-full bg hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150"
-                        >
-                            Add project
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
+    if (galleryFiles.length > MAX_GALLERY_FILES) {
+      setError(`You can add up to ${MAX_GALLERY_FILES} gallery photos.`);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", image);
+    galleryFiles.forEach((file) => {
+      formData.append("gallery", file);
+    });
+    formData.append("title_tk", titleTk);
+    formData.append("title_en", titleEn);
+    formData.append("title_ru", titleRu);
+    formData.append("text_tk", textTk);
+    formData.append("text_en", textEn);
+    formData.append("text_ru", textRu);
+    formData.append("costumer_tk", costumerTk);
+    formData.append("costumer_en", costumerEn);
+    formData.append("costumer_ru", costumerRu);
+    formData.append("website", website);
+    formData.append("details", JSON.stringify(details));
+
+    try {
+      setSaving(true);
+      await api.post("/api/projects", formData);
+      router.push("/admin/projects");
+    } catch (err) {
+      console.error("Ошибка при добавлении проекта:", err);
+      setError(
+        "Ошибка при добавлении проекта. Проверьте данные и попробуйте снова.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateDetail = (
+    index: number,
+    field: keyof ProjectDetail,
+    value: string,
+  ) => {
+    setDetails((prev) =>
+      prev.map((detail, detailIndex) =>
+        detailIndex === index ? { ...detail, [field]: value } : detail,
+      ),
     );
+  };
+
+  const addDetail = () => {
+    setDetails((prev) => [...prev, createEmptyDetail()]);
+    setOpenDetails((prev) => [...prev, true]);
+  };
+
+  const removeDetail = (index: number) => {
+    setDetails((prev) =>
+      prev.filter((_, detailIndex) => detailIndex !== index),
+    );
+    setOpenDetails((prev) =>
+      prev.filter((_, detailIndex) => detailIndex !== index),
+    );
+  };
+
+  const toggleDetail = (index: number) => {
+    setOpenDetails((prev) =>
+      prev.map((isOpen, detailIndex) =>
+        detailIndex === index ? !isOpen : isOpen,
+      ),
+    );
+  };
+
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-1 p-10 ml-72">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="mt-8 w-full rounded-xl border border-[#D9D9D9] bg-white p-6 shadow-sm"
+        >
+          <h2 className="mb-4 text-2xl font-bold">Add project</h2>
+
+          {error ? (
+            <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="mb-6 flex flex-col gap-4">
+            <Field label="Image:">
+              <ImageUploader
+                files={imageFiles}
+                setFiles={setImageFiles}
+                replaceOnDrop
+                maxFiles={1}
+              />
+              {/* {imageObjectUrls.length > 0 ? (
+                <PreviewCards
+                  files={imageFiles}
+                  urls={imageObjectUrls}
+                  onPreview={setPreviewUrl}
+                  onRemove={(index) =>
+                    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+                  }
+                />
+              ) : null} */}
+            </Field>
+            <Field label="Website:">
+              <input
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                type="text"
+                placeholder="https://example.com"
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </Field>
+          </div>
+
+          {isClient && (
+            <Tabs defaultValue="turkmen">
+              <TabsList>
+                <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+                <TabsTrigger value="english">English</TabsTrigger>
+                <TabsTrigger value="russian">Russian</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="turkmen" className="space-y-4 pt-4">
+                <Field label="Title:">
+                  <TipTapEditor content={titleTk} onChange={setTitleTk} />
+                </Field>
+                <Field label="Text:">
+                  <TipTapEditor content={textTk} onChange={setTextTk} />
+                </Field>
+                <Field label="Costumer:">
+                  <TipTapEditor content={costumerTk} onChange={setCostumerTk} />
+                </Field>
+              </TabsContent>
+
+              <TabsContent value="english" className="space-y-4 pt-4">
+                <Field label="Title:">
+                  <TipTapEditor content={titleEn} onChange={setTitleEn} />
+                </Field>
+                <Field label="Text:">
+                  <TipTapEditor content={textEn} onChange={setTextEn} />
+                </Field>
+                <Field label="Costumer:">
+                  <TipTapEditor content={costumerEn} onChange={setCostumerEn} />
+                </Field>
+              </TabsContent>
+
+              <TabsContent value="russian" className="space-y-4 pt-4">
+                <Field label="Title:">
+                  <TipTapEditor content={titleRu} onChange={setTitleRu} />
+                </Field>
+                <Field label="Text:">
+                  <TipTapEditor content={textRu} onChange={setTextRu} />
+                </Field>
+                <Field label="Costumer:">
+                  <TipTapEditor content={costumerRu} onChange={setCostumerRu} />
+                </Field>
+              </TabsContent>
+            </Tabs>
+          )}
+
+          <div className="mt-6 rounded-xl border border-[#D9D9D9] p-4">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h3 className="text-lg font-semibold">Details</h3>
+              <button
+                type="button"
+                onClick={addDetail}
+                className="rounded bg-[#708DB8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5f7ba6]"
+              >
+                Add detail
+              </button>
+            </div>
+
+            {details.length > 0 ? (
+              <div className="space-y-4">
+                {details.map((detail, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-[#e5e7eb] bg-white p-4"
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                      <button
+                        type="button"
+                        onClick={() => toggleDetail(index)}
+                        className="flex items-center gap-2 text-left font-semibold text-[#1f2937]"
+                      >
+                        <GoChevronRight
+                          className={`size-5 text-[#A3C8FF] transition-transform ${
+                            openDetails[index] ? "rotate-90" : ""
+                          }`}
+                          aria-hidden
+                        />
+                        Detail {index + 1}
+                        {/* <span className="ml-2 text-sm font-normal text-gray-500">
+                          {openDetails[index] ? "Collapse" : "Expand"}
+                        </span> */}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleDetail(index)}
+                          className="inline-flex items-center gap-2 rounded border border-[#D9D9D9] px-3 py-1.5 text-sm font-semibold transition hover:bg-gray-50"
+                        >
+                          <GoChevronRight
+                            className={`size-4 text-black transition-transform ${
+                              openDetails[index] ? "rotate-90" : ""
+                            }`}
+                            aria-hidden
+                          />
+                          {/* {openDetails[index] ? "Collapse" : "Expand"} */}
+                        </button>
+                        {/* <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-2 rounded-md px-4 py-2 bg-[#708DB8] text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <TrashIcon className="size-5" />
+                <span className="text-sm">Delete</span>
+              </button> */}
+                        <button
+                          type="button"
+                          onClick={() => removeDetail(index)}
+                          className="rounded flex items-center gap-2 bg-[#708DB8] px-3 py-1.5 text-sm font-semibold text-white transition hover:text-black hover:bg-gray-200"
+                        >
+                          <TrashIcon className="size-5" />
+                          <span className="text-sm">Delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {isClient && openDetails[index] ? (
+                      <Tabs defaultValue="turkmen">
+                        <TabsList>
+                          <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+                          <TabsTrigger value="english">English</TabsTrigger>
+                          <TabsTrigger value="russian">Russian</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="turkmen" className="space-y-4 pt-4">
+                          <Field label="Title:">
+                            <TipTapEditor
+                              key={`detail-${index}-title-tk`}
+                              content={detail.title_tk}
+                              onChange={(value) =>
+                                updateDetail(index, "title_tk", value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Text:">
+                            <TipTapEditor
+                              key={`detail-${index}-text-tk`}
+                              content={detail.text_tk}
+                              onChange={(value) =>
+                                updateDetail(index, "text_tk", value)
+                              }
+                            />
+                          </Field>
+                        </TabsContent>
+
+                        <TabsContent value="english" className="space-y-4 pt-4">
+                          <Field label="Title:">
+                            <TipTapEditor
+                              key={`detail-${index}-title-en`}
+                              content={detail.title_en}
+                              onChange={(value) =>
+                                updateDetail(index, "title_en", value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Text:">
+                            <TipTapEditor
+                              key={`detail-${index}-text-en`}
+                              content={detail.text_en}
+                              onChange={(value) =>
+                                updateDetail(index, "text_en", value)
+                              }
+                            />
+                          </Field>
+                        </TabsContent>
+
+                        <TabsContent value="russian" className="space-y-4 pt-4">
+                          <Field label="Title:">
+                            <TipTapEditor
+                              key={`detail-${index}-title-ru`}
+                              content={detail.title_ru}
+                              onChange={(value) =>
+                                updateDetail(index, "title_ru", value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Text:">
+                            <TipTapEditor
+                              key={`detail-${index}-text-ru`}
+                              content={detail.text_ru}
+                              onChange={(value) =>
+                                updateDetail(index, "text_ru", value)
+                              }
+                            />
+                          </Field>
+                        </TabsContent>
+                      </Tabs>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No details added yet.</p>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <Field label="Gallery:">
+              <ImageUploaderHero
+                files={galleryFiles}
+                setFiles={setGalleryFiles}
+                maxFiles={MAX_GALLERY_FILES}
+              />
+              <p className="mt-5 text-xs text-gray-500">
+                {galleryFiles.length}/{MAX_GALLERY_FILES} photos selected
+              </p>
+              {galleryObjectUrls.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  <PreviewCards
+                    files={galleryFiles}
+                    urls={galleryObjectUrls}
+                    onPreview={setPreviewUrl}
+                    onRemove={(index) =>
+                      setGalleryFiles((prev) =>
+                        prev.filter((_, i) => i !== index),
+                      )
+                    }
+                  />
+                </div>
+              ) : null}
+            </Field>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="mt-6 w-full rounded bg-[#708DB8] px-4 py-3 font-bold text-white transition hover:bg-[#5f7ba6] disabled:opacity-60"
+          >
+            {saving ? <ClipLoader color="#fff" size={16} /> : "Add project"}
+          </button>
+        </form>
+
+        {previewUrl ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-50 flex cursor-default items-center justify-center bg-black/60 p-4"
+            onClick={() => setPreviewUrl(null)}
+            aria-label="Close preview"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt=""
+              className="max-h-[90vh] max-w-full rounded-lg object-contain shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 };
+
+const PreviewCards = ({
+  files,
+  urls,
+  onPreview,
+  onRemove,
+}: {
+  files: File[];
+  urls: string[];
+  onPreview: (url: string) => void;
+  onRemove: (index: number) => void;
+}) => (
+  <div className="mt-4 flex flex-wrap gap-2 pb-1">
+    {urls.map((url, index) => (
+      <div
+        key={`${files[index]?.name}-${index}`}
+        className="relative shrink-0 overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm"
+      >
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white"
+          aria-label="Remove image"
+        >
+          ×
+        </button>
+        <div className="h-48 w-32 rounded-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="" className="size-full rounded-lg object-cover" />
+        </div>
+        <div className="pt-5">
+          <button
+            type="button"
+            onClick={() => onPreview(url)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#708DB8] py-2 text-sm font-medium text-white transition hover:bg-[#5f7ba6]"
+          >
+            <EyeIcon className="size-4" />
+            View
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <span className="mb-2 block text-sm font-medium text-[#374151]">
+      {label}
+    </span>
+    {children}
+  </div>
+);
 
 export default AddProject;

@@ -1,931 +1,776 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { EyeIcon } from "@heroicons/react/24/outline";
+import { GoChevronRight } from "react-icons/go";
+import { TrashIcon } from "lucide-react";
+import { ClipLoader } from "react-spinners";
 import Sidebar from "@/Components/Sidebar";
-import TokenTimer from "@/Components/TokenTimer";
 import TipTapEditor from "@/Components/TipTapEditor";
-import ImageUploader from "@/app/admin/projects/add-project/ImageUploader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
+import {
+  buildApiUrl,
+  getApiErrorStatus,
+  getImagePath,
+  useApi,
+} from "@/hooks/useApi";
+import ImageUploader from "@/app/admin/slider/add-slider/ImageUploader";
+import ImageUploaderHero from "../../add-project/ImageUploaderHero";
 
-interface ProjectData {
-  id: number;
-  image: string;
+const MAX_GALLERY_FILES = 20;
+
+type ProjectDetail = {
+  id?: number;
   title_tk: string;
   title_en: string;
   title_ru: string;
-  end_date: string;
-  area: string;
-  client_tk: string;
-  client_en: string;
-  client_ru: string;
-  start_date: string;
-  first_section_tk: string;
-  first_section_en: string;
-  first_section_ru: string;
-  second_section_tk: string;
-  second_section_en: string;
-  second_section_ru: string;
-  third_section_tk: string;
-  third_section_en: string;
-  third_section_ru: string;
-  architect_tk: string;
-  architect_en: string;
-  architect_ru: string;
-  lead_designer_tk: string;
-  lead_designer_en: string;
-  lead_designer_ru: string;
-  interior_designer_tk: string;
-  interior_designer_en: string;
-  interior_designer_ru: string;
-  p_manager_tk: string;
-  p_manager_en: string;
-  p_manager_ru: string;
-  location_id: string;
-  type_id: string;
-  style_id: string;
-  location?: {
-    id: number;
-    title_tk: string;
-    title_en: string;
-    title_ru: string;
-  } | null;
-  style?: {
-    id: number;
-    title_tk: string;
-    title_en: string;
-    title_ru: string;
-  } | null;
-  type?: {
-    id: number;
-    title_tk: string;
-    title_en: string;
-    title_ru: string;
-  } | null;
-  gallery: string[];
-  drawings: string[];
-}
+  text_tk: string;
+  text_en: string;
+  text_ru: string;
+};
+
+type ProjectFormData = {
+  title_tk: string;
+  title_en: string;
+  title_ru: string;
+  text_tk: string;
+  text_en: string;
+  text_ru: string;
+  costumer_tk: string;
+  costumer_en: string;
+  costumer_ru: string;
+  website: string;
+};
+
+type ProjectResponse = ProjectFormData & {
+  id: number;
+  image?: unknown;
+  gallery?: unknown[];
+  details?: ProjectDetail[];
+};
+
+const emptyForm: ProjectFormData = {
+  title_tk: "",
+  title_en: "",
+  title_ru: "",
+  text_tk: "",
+  text_en: "",
+  text_ru: "",
+  costumer_tk: "",
+  costumer_en: "",
+  costumer_ru: "",
+  website: "",
+};
+
+const createEmptyDetail = (): ProjectDetail => ({
+  title_tk: "",
+  title_en: "",
+  title_ru: "",
+  text_tk: "",
+  text_en: "",
+  text_ru: "",
+});
+
+const normalizeDetails = (details: ProjectResponse["details"] = []) =>
+  details.map((detail) => ({
+    ...(typeof detail.id === "number" ? { id: detail.id } : {}),
+    title_tk: detail.title_tk ?? "",
+    title_en: detail.title_en ?? "",
+    title_ru: detail.title_ru ?? "",
+    text_tk: detail.text_tk ?? "",
+    text_en: detail.text_en ?? "",
+    text_ru: detail.text_ru ?? "",
+  }));
+
+const hasText = (value: string) =>
+  value
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim().length > 0;
 
 const EditProject = () => {
-  const [isClient, setIsClient] = useState(false);
-  const [image, setImage] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState<string>("");
-  const [title_tk, setTitleTk] = useState("");
-  const [title_en, setTitleEn] = useState("");
-  const [title_ru, setTitleRu] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [area, setArea] = useState("");
-  const [client_tk, setClientTk] = useState("");
-  const [client_en, setClientEn] = useState("");
-  const [client_ru, setClientRu] = useState("");
-  const [first_section_tk, setFirstSectionTk] = useState("");
-  const [first_section_en, setFirstSectionEn] = useState("");
-  const [first_section_ru, setFirstSectionRu] = useState("");
-  const [second_section_tk, setSecondSectionTk] = useState("");
-  const [second_section_en, setSecondSectionEn] = useState("");
-  const [second_section_ru, setSecondSectionRu] = useState("");
-  const [third_section_tk, setThirdSectionTk] = useState("");
-  const [third_section_en, setThirdSectionEn] = useState("");
-  const [third_section_ru, setThirdSectionRu] = useState("");
-  const [architect_tk, setArchitectTk] = useState("");
-  const [architect_en, setArchitectEn] = useState("");
-  const [architect_ru, setArchitectRu] = useState("");
-  const [lead_designer_tk, setLeadDesignerTk] = useState("");
-  const [lead_designer_en, setLeadDesignerEn] = useState("");
-  const [lead_designer_ru, setLeadDesignerRu] = useState("");
-  const [interior_designer_tk, setInteriorDesignerTk] = useState("");
-  const [interior_designer_en, setInteriorDesignerEn] = useState("");
-  const [interior_designer_ru, setInteriorDesignerRu] = useState("");
-  const [p_manager_tk, setPManagerTk] = useState("");
-  const [p_manager_en, setPManagerEn] = useState("");
-  const [p_manager_ru, setPManagerRu] = useState("");
-  const [location_id, setLocationId] = useState("");
-  const [type_id, setTypeId] = useState("");
-  const [style_id, setStyleId] = useState("");
-
-  const [types, setTypes] = useState<
-    { id: number; type_tk: string; type_en: string; type_ru: string }[]
-  >([]);
-  const [style, setStyle] = useState<
-    { id: number; style_tk: string; style_en: string; style_ru: string }[]
-  >([]);
-  const [location, setLocation] = useState<
-    {
-      id: number;
-      location_tk: string;
-      location_en: string;
-      location_ru: string;
-    }[]
-  >([]);
-
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
-  const [drawingFiles, setDrawingFiles] = useState<File[]>([]);
-  const [existingGallery, setExistingGallery] = useState<string[]>([]);
-  const [existingDrawings, setExistingDrawings] = useState<string[]>([]);
-  const [galleryToDelete, setGalleryToDelete] = useState<string[]>([]);
-  const [drawingsToDelete, setDrawingsToDelete] = useState<string[]>([]);
-
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const params = useParams();
   const projectId = params.id as string;
+  const api = useApi();
+
+  const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [existingGalleryUrls, setExistingGalleryUrls] = useState<string[]>([]);
+  const [details, setDetails] = useState<ProjectDetail[]>([]);
+  const [originalDetailIds, setOriginalDetailIds] = useState<number[]>([]);
+  const [openDetails, setOpenDetails] = useState<boolean[]>([]);
+  const [data, setData] = useState<ProjectFormData>(emptyForm);
+  const [fetchError, setFetchError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const imageObjectUrls = useMemo(
+    () => imageFiles.map((file) => URL.createObjectURL(file)),
+    [imageFiles],
+  );
+
+  const galleryObjectUrls = useMemo(
+    () => galleryFiles.map((file) => URL.createObjectURL(file)),
+    [galleryFiles],
+  );
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
 
-    const fetchProjectData = async () => {
+  useEffect(() => {
+    const urls = [...imageObjectUrls, ...galleryObjectUrls];
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imageObjectUrls, galleryObjectUrls]);
+
+  useEffect(() => {
+    const fetchProject = async () => {
       try {
-        const [projectRes, typesRes, styleRes, locationRes] = await Promise.all(
-          [
-            fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`,
-            ),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/project-type`),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/project-style`),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/project-location`),
-          ],
+        const response = await api.get<ProjectResponse[] | ProjectResponse>(
+          `/api/projects/${projectId}`,
+        );
+        const project = Array.isArray(response) ? response[0] : response;
+
+        if (!project) {
+          setFetchError("Project not found");
+          return;
+        }
+
+        setData({
+          title_tk: project.title_tk ?? "",
+          title_en: project.title_en ?? "",
+          title_ru: project.title_ru ?? "",
+          text_tk: project.text_tk ?? "",
+          text_en: project.text_en ?? "",
+          text_ru: project.text_ru ?? "",
+          costumer_tk: project.costumer_tk ?? "",
+          costumer_en: project.costumer_en ?? "",
+          costumer_ru: project.costumer_ru ?? "",
+          website: project.website ?? "",
+        });
+
+        const imagePath = getImagePath(project.image);
+        setExistingImageUrl(imagePath ? buildApiUrl(imagePath) : null);
+
+        setExistingGalleryUrls(
+          (project.gallery ?? [])
+            .map((galleryItem) => getImagePath(galleryItem))
+            .filter((imagePath): imagePath is string => imagePath !== null)
+            .map((imagePath) => buildApiUrl(imagePath)),
         );
 
-        if (!projectRes.ok) {
-          throw new Error("Project not found");
-        }
-
-        const [projectData, typesData, styleData, locationData] =
-          await Promise.all([
-            projectRes.json(),
-            typesRes.json(),
-            styleRes.json(),
-            locationRes.json(),
-          ]);
-
-        setTitleTk(projectData.title_tk || "");
-        setTitleEn(projectData.title_en || "");
-        setTitleRu(projectData.title_ru || "");
-        setStartDate(projectData.start_date?.toString() || "");
-        setEndDate(projectData.end_date?.toString() || "");
-        setArea(projectData.area || "");
-        setClientTk(projectData.client_tk || "");
-        setClientEn(projectData.client_en || "");
-        setClientRu(projectData.client_ru || "");
-        setFirstSectionTk(projectData.first_section_tk || "");
-        setFirstSectionEn(projectData.first_section_en || "");
-        setFirstSectionRu(projectData.first_section_ru || "");
-        setSecondSectionTk(projectData.second_section_tk || "");
-        setSecondSectionEn(projectData.second_section_en || "");
-        setSecondSectionRu(projectData.second_section_ru || "");
-        setThirdSectionTk(projectData.third_section_tk || "");
-        setThirdSectionEn(projectData.third_section_en || "");
-        setThirdSectionRu(projectData.third_section_ru || "");
-        setArchitectTk(projectData.architect_tk || "");
-        setArchitectEn(projectData.architect_en || "");
-        setArchitectRu(projectData.architect_ru || "");
-        setLeadDesignerTk(projectData.lead_designer_tk || "");
-        setLeadDesignerEn(projectData.lead_designer_en || "");
-        setLeadDesignerRu(projectData.lead_designer_ru || "");
-        setInteriorDesignerTk(projectData.interior_designer_tk || "");
-        setInteriorDesignerEn(projectData.interior_designer_en || "");
-        setInteriorDesignerRu(projectData.interior_designer_ru || "");
-        setPManagerTk(projectData.p_manager_tk || "");
-        setPManagerEn(projectData.p_manager_en || "");
-        setPManagerRu(projectData.p_manager_ru || "");
-        setLocationId(projectData.location_id?.toString() || "");
-        setTypeId(projectData.type_id?.toString() || "");
-        setStyleId(projectData.style_id?.toString() || "");
-
-        if (projectData.image) {
-          setPreviewImage(
-            `${process.env.NEXT_PUBLIC_API_URL}/${projectData.image}`,
-          );
-        }
-
-        setExistingGallery(projectData.gallery || []);
-        setExistingDrawings(projectData.drawings || []);
-
-        setTypes(typesData);
-        setStyle(styleData);
-        setLocation(locationData);
-
-        setIsLoading(false);
+        const projectDetails = normalizeDetails(project.details);
+        setDetails(projectDetails);
+        setOriginalDetailIds(
+          projectDetails
+            .map((detail) => detail.id)
+            .filter((id): id is number => typeof id === "number"),
+        );
+        setOpenDetails(projectDetails.map(() => true));
       } catch (err) {
-        console.error("Ошибка при загрузке данных:", err);
+        console.error("Ошибка при загрузке проекта:", err);
+        setFetchError("Ошибка при загрузке проекта");
+
+        if (getApiErrorStatus(err) === 401) {
+          router.push("/");
+        }
+      } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProjectData();
-  }, [projectId]);
+    fetchProject();
+  }, [api, projectId, router]);
 
-  const handleImageDelete = () => {
-    setImage(null);
-    setPreviewImage("");
+  const handleChange = (field: keyof ProjectFormData, value: string) => {
+    setData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleGalleryImageDelete = (imageUrl: string) => {
-    setExistingGallery((prev) => prev.filter((img) => img !== imageUrl));
-    setGalleryToDelete((prev) => [...prev, imageUrl]);
+  const updateDetail = (
+    index: number,
+    field: keyof ProjectDetail,
+    value: string,
+  ) => {
+    setDetails((prev) =>
+      prev.map((detail, detailIndex) =>
+        detailIndex === index ? { ...detail, [field]: value } : detail,
+      ),
+    );
   };
 
-  const handleDrawingImageDelete = (imageUrl: string) => {
-    setExistingDrawings((prev) => prev.filter((img) => img !== imageUrl));
-    setDrawingsToDelete((prev) => [...prev, imageUrl]);
+  const addDetail = () => {
+    setDetails((prev) => [...prev, createEmptyDetail()]);
+    setOpenDetails((prev) => [...prev, true]);
+  };
+
+  const removeDetail = (index: number) => {
+    setDetails((prev) =>
+      prev.filter((_, detailIndex) => detailIndex !== index),
+    );
+    setOpenDetails((prev) =>
+      prev.filter((_, detailIndex) => detailIndex !== index),
+    );
+  };
+
+  const toggleDetail = (index: number) => {
+    setOpenDetails((prev) =>
+      prev.map((isOpen, detailIndex) =>
+        detailIndex === index ? !isOpen : isOpen,
+      ),
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError("");
 
-    const token = localStorage.getItem("auth_token");
-    if (!token) {
-      console.error("Нет токена. Пользователь не авторизован.");
+    const requiredFields = [
+      { label: "Turkmen title", value: data.title_tk },
+      { label: "English title", value: data.title_en },
+      { label: "Russian title", value: data.title_ru },
+      { label: "Turkmen text", value: data.text_tk },
+      { label: "English text", value: data.text_en },
+      { label: "Russian text", value: data.text_ru },
+      { label: "Turkmen costumer", value: data.costumer_tk },
+      { label: "English costumer", value: data.costumer_en },
+      { label: "Russian costumer", value: data.costumer_ru },
+      { label: "Website", value: data.website },
+    ];
+
+    if (!existingImageUrl && imageFiles.length === 0) {
+      setSaveError("Please select an image.");
+      return;
+    }
+
+    if (existingGalleryUrls.length + galleryFiles.length === 0) {
+      setSaveError("Please select at least one gallery photo.");
+      return;
+    }
+
+    if (details.length === 0) {
+      setSaveError("Please add at least one detail.");
+      return;
+    }
+
+    const emptyField = requiredFields.find((field) => !hasText(field.value));
+    if (emptyField) {
+      setSaveError(`Please fill in ${emptyField.label}.`);
+      return;
+    }
+
+    const emptyDetail = details
+      .flatMap((detail, index) => [
+        { label: `Detail ${index + 1} Turkmen title`, value: detail.title_tk },
+        { label: `Detail ${index + 1} English title`, value: detail.title_en },
+        { label: `Detail ${index + 1} Russian title`, value: detail.title_ru },
+        { label: `Detail ${index + 1} Turkmen text`, value: detail.text_tk },
+        { label: `Detail ${index + 1} English text`, value: detail.text_en },
+        { label: `Detail ${index + 1} Russian text`, value: detail.text_ru },
+      ])
+      .find((field) => !hasText(field.value));
+
+    if (emptyDetail) {
+      setSaveError(`Please fill in ${emptyDetail.label}.`);
+      return;
+    }
+
+    if (existingGalleryUrls.length + galleryFiles.length > MAX_GALLERY_FILES) {
+      setSaveError(`You can add up to ${MAX_GALLERY_FILES} gallery photos.`);
       return;
     }
 
     const formData = new FormData();
-
-    if (image) {
-      formData.append("image", image);
-    }
-
-    formData.append("title_tk", title_tk ?? "");
-    formData.append("title_en", title_en ?? "");
-    formData.append("title_ru", title_ru ?? "");
-    formData.append("end_date", endDate ?? "");
-    formData.append("area", area ?? "");
-    formData.append("client_tk", client_tk ?? "");
-    formData.append("client_en", client_en ?? "");
-    formData.append("client_ru", client_ru ?? "");
-    formData.append("start_date", startDate ?? "");
-    formData.append("first_section_tk", first_section_tk ?? "");
-    formData.append("first_section_en", first_section_en ?? "");
-    formData.append("first_section_ru", first_section_ru ?? "");
-    formData.append("second_section_tk", second_section_tk ?? "");
-    formData.append("second_section_en", second_section_en ?? "");
-    formData.append("second_section_ru", second_section_ru ?? "");
-    formData.append("third_section_tk", third_section_tk ?? "");
-    formData.append("third_section_en", third_section_en ?? "");
-    formData.append("third_section_ru", third_section_ru ?? "");
-    formData.append("architect_tk", architect_tk ?? "");
-    formData.append("architect_en", architect_en ?? "");
-    formData.append("architect_ru", architect_ru ?? "");
-    formData.append("lead_designer_tk", lead_designer_tk ?? "");
-    formData.append("lead_designer_en", lead_designer_en ?? "");
-    formData.append("lead_designer_ru", lead_designer_ru ?? "");
-    formData.append("interior_designer_tk", interior_designer_tk ?? "");
-    formData.append("interior_designer_en", interior_designer_en ?? "");
-    formData.append("interior_designer_ru", interior_designer_ru ?? "");
-    formData.append("p_manager_tk", p_manager_tk ?? "");
-    formData.append("p_manager_en", p_manager_en ?? "");
-    formData.append("p_manager_ru", p_manager_ru ?? "");
-    formData.append("location_id", location_id ?? "");
-    formData.append("type_id", type_id ?? "");
-    formData.append("style_id", style_id ?? "");
-
-    for (const file of galleryFiles) {
+    const image = imageFiles[0];
+    if (image) formData.append("image", image);
+    galleryFiles.forEach((file) => {
       formData.append("gallery", file);
-    }
-
-    for (const file of drawingFiles) {
-      formData.append("drawings", file);
-    }
-
-    if (galleryToDelete.length > 0) {
-      formData.append("gallery_to_delete", JSON.stringify(galleryToDelete));
-    }
-
-    if (drawingsToDelete.length > 0) {
-      formData.append("drawings_to_delete", JSON.stringify(drawingsToDelete));
-    }
+    });
+    Object.entries(data).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/projects/${projectId}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        },
+      setSaving(true);
+      await api.put(`/api/projects/${projectId}`, formData);
+
+      const currentIds = new Set(
+        details
+          .map((detail) => detail.id)
+          .filter((id): id is number => typeof id === "number"),
+      );
+      const removedIds = originalDetailIds.filter(
+        (id) => !currentIds.has(id),
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Проект обновлен!", data);
-        router.push("/admin/projects");
-      } else {
-        const errorText = await response.text();
-        console.error("Ошибка при обновлении:", errorText);
+      await Promise.all([
+        ...removedIds.map((id) => api.delete(`/api/project-details/${id}`)),
+        ...details.map((detail) => {
+          const payload = {
+            title_tk: detail.title_tk,
+            title_en: detail.title_en,
+            title_ru: detail.title_ru,
+            text_tk: detail.text_tk,
+            text_en: detail.text_en,
+            text_ru: detail.text_ru,
+          };
+          if (typeof detail.id === "number") {
+            return api.put(`/api/project-details/${detail.id}`, payload);
+          }
+          return api.post(`/api/project-details`, {
+            project_id: Number(projectId),
+            ...payload,
+          });
+        }),
+      ]);
+
+      router.push(`/admin/projects`);
+    } catch (err) {
+      console.error("Ошибка при сохранении проекта:", err);
+      setSaveError(
+        "Ошибка при сохранении проекта. Проверьте данные и попробуйте снова.",
+      );
+
+      if (getApiErrorStatus(err) === 401) {
+        router.push("/");
       }
-    } catch (error) {
-      console.error("Ошибка запроса", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex bg-gray-200">
+      <div className="flex min-h-screen">
         <Sidebar />
-        <div className="flex-1 p-10 ml-62 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Загрузка данных проекта...</p>
-          </div>
+        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+          <ClipLoader size={80} color="#708DB8" />
         </div>
       </div>
     );
   }
-
+  if (fetchError) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+          <p className="mt-8 text-red-600">{fetchError}</p>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="flex bg-gray-200">
+    <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-10 ml-62">
-        <TokenTimer />
-        <div className="mt-8">
-          <form
-            onSubmit={handleSubmit}
-            className="w-full mx-auto p-6 border border-gray-300 rounded-lg shadow-lg bg-white"
-          >
-            <h2 className="text-2xl font-bold mb-4 text-left">Edit project</h2>
+      <div className="flex-1 p-10 ml-72">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="mt-8 w-full rounded-xl border border-[#D9D9D9] bg-white p-6 shadow-sm"
+        >
+          <h2 className="mb-4 text-2xl font-bold">Edit project</h2>
 
-            <div className="mb-4 flex space-x-4">
-              <div className="w-full">
-                <label
-                  htmlFor="image"
-                  className="block text-gray-700 font-semibold mb-2"
-                >
-                  Main Image:
-                </label>
-                {previewImage && (
-                  <div className="mb-4 relative">
-                    <img
-                      src={previewImage}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleImageDelete}
-                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  id="image"
-                  accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setImage(e.target.files[0]);
-                      setPreviewImage(URL.createObjectURL(e.target.files[0]));
-                    }
-                  }}
-                  className="border border-gray-300 rounded p-2 w-full focus:border-blue-500 focus:ring focus:ring-blue-200 transition duration-150"
+          {saveError ? (
+            <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+              {saveError}
+            </p>
+          ) : null}
+
+          <div className="mb-6 flex flex-col gap-4">
+            <Field label="Image:">
+              <ImageUploader
+                files={imageFiles}
+                setFiles={setImageFiles}
+                replaceOnDrop
+                maxFiles={1}
+              />
+              {imageObjectUrls.length > 0 ? (
+                <PreviewCards
+                  urls={imageObjectUrls}
+                  onPreview={setPreviewUrl}
+                  onRemove={(index) =>
+                    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+                  }
                 />
-                {!previewImage && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    Выберите новое изображение или оставьте текущее
-                  </p>
-                )}
-              </div>
-
-              <div className="w-full">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Select Type:
-                </label>
-                <select
-                  id="project_type"
-                  name="type_id"
-                  value={type_id}
-                  onChange={(e) => setTypeId(e.target.value)}
-                  required
-                  className="border border-gray-300 rounded p-2 w-full"
-                >
-                  <option value="">Select type</option>
-                  {types.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.type_en}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-full">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Select style:
-                </label>
-                <select
-                  id="project_style"
-                  name="style_id"
-                  value={style_id}
-                  onChange={(e) => setStyleId(e.target.value)}
-                  required
-                  className="border border-gray-300 rounded p-2 w-full"
-                >
-                  <option value="">Select category</option>
-                  {style.map((style) => (
-                    <option key={style.id} value={style.id}>
-                      {style.style_en}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-full">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Select Location:
-                </label>
-                <select
-                  id="location_id"
-                  name="location_id"
-                  value={location_id}
-                  onChange={(e) => setLocationId(e.target.value)}
-                  required
-                  className="border border-gray-300 rounded p-2 w-full"
-                >
-                  <option value="">Select location</option>
-                  {location.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.location_en}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mb-4 flex space-x-4">
-              <div className="w-full">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Start year:
-                </label>
-                <input
-                  type="number"
-                  min="1900"
-                  max={new Date().getFullYear() + 10}
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
-                  className="border border-gray-300 rounded p-2 w-full"
-                  placeholder="2020"
+              ) : existingImageUrl ? (
+                <PreviewCards
+                  urls={[existingImageUrl]}
+                  onPreview={setPreviewUrl}
+                  onRemove={() => setExistingImageUrl(null)}
                 />
-              </div>
+              ) : null}
+            </Field>
+            <Field label="Website:">
+              <input
+                value={data.website}
+                onChange={(e) => handleChange("website", e.target.value)}
+                type="text"
+                placeholder="https://example.com"
+                className="w-full rounded border border-gray-300 p-2"
+              />
+            </Field>
+          </div>
 
-              <div className="w-full">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  End year:
-                </label>
-                <input
-                  type="number"
-                  min="1900"
-                  max={new Date().getFullYear() + 10}
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                  className="border border-gray-300 rounded p-2 w-full"
-                  placeholder="2024"
-                />
-              </div>
+          {isClient && (
+            <Tabs defaultValue="turkmen">
+              <TabsList>
+                <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+                <TabsTrigger value="english">English</TabsTrigger>
+                <TabsTrigger value="russian">Russian</TabsTrigger>
+              </TabsList>
 
-              <div className="w-full">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Area:
-                </label>
-                <input
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  type="text"
-                  required
-                  className="border border-gray-300 rounded p-2 w-full"
-                />
-              </div>
-            </div>
-
-            {isClient && (
-              <>
-                <div className="tabs tabs-lift">
-                  <input
-                    type="radio"
-                    name="my_tabs_3"
-                    className="tab"
-                    aria-label="Turkmen"
-                    defaultChecked
+              <TabsContent value="turkmen" className="space-y-4 pt-4">
+                <Field label="Title:">
+                  <TipTapEditor
+                    key={`title-tk-${projectId}`}
+                    content={data.title_tk}
+                    onChange={(value) => handleChange("title_tk", value)}
                   />
-                  <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Title:
-                      </label>
-                      <TipTapEditor
-                        content={title_tk}
-                        onChange={(content) => setTitleTk(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Client:
-                      </label>
-                      <input
-                        value={client_tk}
-                        onChange={(e) => setClientTk(e.target.value)}
-                        type="text"
-                        required
-                        className="border border-gray-300 rounded p-2 w-full"
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        First section:
-                      </label>
-                      <TipTapEditor
-                        content={first_section_tk}
-                        onChange={(content) => setFirstSectionTk(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Second section:
-                      </label>
-                      <TipTapEditor
-                        content={second_section_tk}
-                        onChange={(content) => setSecondSectionTk(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Third section:
-                      </label>
-                      <TipTapEditor
-                        content={third_section_tk}
-                        onChange={(content) => setThirdSectionTk(content)}
-                      />
-                    </div>
-                    <div className="flex w-full space-x-4">
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Architect:
-                        </label>
-                        <input
-                          value={architect_tk}
-                          onChange={(e) => setArchitectTk(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Lead designer:
-                        </label>
-                        <input
-                          value={lead_designer_tk}
-                          onChange={(e) => setLeadDesignerTk(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Interior designer:
-                        </label>
-                        <input
-                          value={interior_designer_tk}
-                          onChange={(e) =>
-                            setInteriorDesignerTk(e.target.value)
-                          }
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Project manager:
-                        </label>
-                        <input
-                          value={p_manager_tk}
-                          onChange={(e) => setPManagerTk(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <input
-                    type="radio"
-                    name="my_tabs_3"
-                    className="tab"
-                    aria-label="English"
+                </Field>
+                <Field label="Text:">
+                  <TipTapEditor
+                    key={`text-tk-${projectId}`}
+                    content={data.text_tk}
+                    onChange={(value) => handleChange("text_tk", value)}
                   />
-                  <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Title:
-                      </label>
-                      <TipTapEditor
-                        content={title_en}
-                        onChange={(content) => setTitleEn(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Client:
-                      </label>
-                      <input
-                        value={client_en}
-                        onChange={(e) => setClientEn(e.target.value)}
-                        type="text"
-                        required
-                        className="border border-gray-300 rounded p-2 w-full"
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        First section:
-                      </label>
-                      <TipTapEditor
-                        content={first_section_en}
-                        onChange={(content) => setFirstSectionEn(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Second section:
-                      </label>
-                      <TipTapEditor
-                        content={second_section_en}
-                        onChange={(content) => setSecondSectionEn(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Third section:
-                      </label>
-                      <TipTapEditor
-                        content={third_section_en}
-                        onChange={(content) => setThirdSectionEn(content)}
-                      />
-                    </div>
-                    <div className="flex w-full space-x-4">
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Architect:
-                        </label>
-                        <input
-                          value={architect_en}
-                          onChange={(e) => setArchitectEn(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Lead designer:
-                        </label>
-                        <input
-                          value={lead_designer_en}
-                          onChange={(e) => setLeadDesignerEn(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Interior designer:
-                        </label>
-                        <input
-                          value={interior_designer_en}
-                          onChange={(e) =>
-                            setInteriorDesignerEn(e.target.value)
-                          }
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Project manager:
-                        </label>
-                        <input
-                          value={p_manager_en}
-                          onChange={(e) => setPManagerEn(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <input
-                    type="radio"
-                    name="my_tabs_3"
-                    className="tab"
-                    aria-label="Russian"
+                </Field>
+                <Field label="Costumer:">
+                  <TipTapEditor
+                    key={`costumer-tk-${projectId}`}
+                    content={data.costumer_tk}
+                    onChange={(value) => handleChange("costumer_tk", value)}
                   />
-                  <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Title:
-                      </label>
-                      <TipTapEditor
-                        content={title_ru}
-                        onChange={(content) => setTitleRu(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Client:
-                      </label>
-                      <input
-                        value={client_ru}
-                        onChange={(e) => setClientRu(e.target.value)}
-                        type="text"
-                        required
-                        className="border border-gray-300 rounded p-2 w-full"
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        First section:
-                      </label>
-                      <TipTapEditor
-                        content={first_section_ru}
-                        onChange={(content) => setFirstSectionRu(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Second section:
-                      </label>
-                      <TipTapEditor
-                        content={second_section_ru}
-                        onChange={(content) => setSecondSectionRu(content)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Third section:
-                      </label>
-                      <TipTapEditor
-                        content={third_section_ru}
-                        onChange={(content) => setThirdSectionRu(content)}
-                      />
-                    </div>
-                    <div className="flex w-full space-x-4">
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Architect:
-                        </label>
-                        <input
-                          value={architect_ru}
-                          onChange={(e) => setArchitectRu(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Lead designer:
-                        </label>
-                        <input
-                          value={lead_designer_ru}
-                          onChange={(e) => setLeadDesignerRu(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Interior designer:
-                        </label>
-                        <input
-                          value={interior_designer_ru}
-                          onChange={(e) =>
-                            setInteriorDesignerRu(e.target.value)
-                          }
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                      <div className="mb-4 w-full">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Project manager:
-                        </label>
-                        <input
-                          value={p_manager_ru}
-                          onChange={(e) => setPManagerRu(e.target.value)}
-                          type="text"
-                          required
-                          className="border border-gray-300 rounded p-2 w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                </Field>
+              </TabsContent>
 
-                  <input
-                    type="radio"
-                    name="my_tabs_3"
-                    className="tab"
-                    aria-label="Gallery"
+              <TabsContent value="english" className="space-y-4 pt-4">
+                <Field label="Title:">
+                  <TipTapEditor
+                    key={`title-en-${projectId}`}
+                    content={data.title_en}
+                    onChange={(value) => handleChange("title_en", value)}
                   />
-                  <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Existing Gallery Images:
-                      </label>
-                      <div className="grid grid-cols-4 gap-4 mb-6">
-                        {existingGallery.map((img, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}/${img}`}
-                              alt={`Gallery ${index + 1}`}
-                              className="w-full h-32 object-cover rounded"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleGalleryImageDelete(img)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                </Field>
+                <Field label="Text:">
+                  <TipTapEditor
+                    key={`text-en-${projectId}`}
+                    content={data.text_en}
+                    onChange={(value) => handleChange("text_en", value)}
+                  />
+                </Field>
+                <Field label="Costumer:">
+                  <TipTapEditor
+                    key={`costumer-en-${projectId}`}
+                    content={data.costumer_en}
+                    onChange={(value) => handleChange("costumer_en", value)}
+                  />
+                </Field>
+              </TabsContent>
 
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Add New Gallery Images:
-                      </label>
-                      <ImageUploader
-                        label="Gallery"
-                        files={galleryFiles}
-                        setFiles={setGalleryFiles}
-                      />
-                    </div>
+              <TabsContent value="russian" className="space-y-4 pt-4">
+                <Field label="Title:">
+                  <TipTapEditor
+                    key={`title-ru-${projectId}`}
+                    content={data.title_ru}
+                    onChange={(value) => handleChange("title_ru", value)}
+                  />
+                </Field>
+                <Field label="Text:">
+                  <TipTapEditor
+                    key={`text-ru-${projectId}`}
+                    content={data.text_ru}
+                    onChange={(value) => handleChange("text_ru", value)}
+                  />
+                </Field>
+                <Field label="Costumer:">
+                  <TipTapEditor
+                    key={`costumer-ru-${projectId}`}
+                    content={data.costumer_ru}
+                    onChange={(value) => handleChange("costumer_ru", value)}
+                  />
+                </Field>
+              </TabsContent>
+            </Tabs>
+          )}
 
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Existing Drawing Images:
-                      </label>
-                      <div className="grid grid-cols-4 gap-4 mb-6">
-                        {existingDrawings.map((img, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}/${img}`}
-                              alt={`Drawing ${index + 1}`}
-                              className="w-full h-32 object-cover rounded"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleDrawingImageDelete(img)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <label className="block text-gray-700 font-semibold mb-2">
-                        Add New Drawing Images:
-                      </label>
-                      <ImageUploader
-                        label="Drawings"
-                        files={drawingFiles}
-                        setFiles={setDrawingFiles}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="flex space-x-4 mt-6">
-              <button
-                type="submit"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition duration-150"
-              >
-                Update project
-              </button>
+          <div className="mt-6 rounded-xl border border-[#D9D9D9] p-4">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h3 className="text-lg font-semibold">Details</h3>
               <button
                 type="button"
-                onClick={() => router.push("/admin/projects")}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded transition duration-150"
+                onClick={addDetail}
+                className="rounded bg-[#708DB8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5f7ba6]"
               >
-                Cancel
+                Add detail
               </button>
             </div>
-          </form>
-        </div>
+
+            {details.length > 0 ? (
+              <div className="space-y-4">
+                {details.map((detail, index) => (
+                  <div
+                    key={`${projectId}-${detail.id ?? index}`}
+                    className="rounded-lg border border-[#e5e7eb] bg-white p-4"
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                      <button
+                        type="button"
+                        onClick={() => toggleDetail(index)}
+                        className="flex items-center gap-2 text-left font-semibold text-[#1f2937]"
+                      >
+                        <GoChevronRight
+                          className={`size-5 text-[#A3C8FF] transition-transform ${
+                            openDetails[index] ? "rotate-90" : ""
+                          }`}
+                          aria-hidden
+                        />
+                        Detail {index + 1}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleDetail(index)}
+                          className="inline-flex items-center gap-2 rounded border border-[#D9D9D9] px-3 py-1.5 text-sm font-semibold transition hover:bg-gray-50"
+                        >
+                          <GoChevronRight
+                            className={`size-4 text-black transition-transform ${
+                              openDetails[index] ? "rotate-90" : ""
+                            }`}
+                            aria-hidden
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeDetail(index)}
+                          className="flex items-center gap-2 rounded bg-[#708DB8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-gray-200 hover:text-black"
+                        >
+                          <TrashIcon className="size-5" />
+                          <span className="text-sm">Delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {isClient && openDetails[index] ? (
+                      <Tabs defaultValue="turkmen">
+                        <TabsList>
+                          <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+                          <TabsTrigger value="english">English</TabsTrigger>
+                          <TabsTrigger value="russian">Russian</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="turkmen" className="space-y-4 pt-4">
+                          <Field label="Title:">
+                            <TipTapEditor
+                              key={`detail-${projectId}-${detail.id ?? index}-title-tk`}
+                              content={detail.title_tk}
+                              onChange={(value) =>
+                                updateDetail(index, "title_tk", value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Text:">
+                            <TipTapEditor
+                              key={`detail-${projectId}-${detail.id ?? index}-text-tk`}
+                              content={detail.text_tk}
+                              onChange={(value) =>
+                                updateDetail(index, "text_tk", value)
+                              }
+                            />
+                          </Field>
+                        </TabsContent>
+
+                        <TabsContent value="english" className="space-y-4 pt-4">
+                          <Field label="Title:">
+                            <TipTapEditor
+                              key={`detail-${projectId}-${detail.id ?? index}-title-en`}
+                              content={detail.title_en}
+                              onChange={(value) =>
+                                updateDetail(index, "title_en", value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Text:">
+                            <TipTapEditor
+                              key={`detail-${projectId}-${detail.id ?? index}-text-en`}
+                              content={detail.text_en}
+                              onChange={(value) =>
+                                updateDetail(index, "text_en", value)
+                              }
+                            />
+                          </Field>
+                        </TabsContent>
+
+                        <TabsContent value="russian" className="space-y-4 pt-4">
+                          <Field label="Title:">
+                            <TipTapEditor
+                              key={`detail-${projectId}-${detail.id ?? index}-title-ru`}
+                              content={detail.title_ru}
+                              onChange={(value) =>
+                                updateDetail(index, "title_ru", value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Text:">
+                            <TipTapEditor
+                              key={`detail-${projectId}-${detail.id ?? index}-text-ru`}
+                              content={detail.text_ru}
+                              onChange={(value) =>
+                                updateDetail(index, "text_ru", value)
+                              }
+                            />
+                          </Field>
+                        </TabsContent>
+                      </Tabs>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No details added yet.</p>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <Field label="Gallery:">
+              <ImageUploaderHero
+                files={galleryFiles}
+                setFiles={setGalleryFiles}
+                maxFiles={MAX_GALLERY_FILES}
+              />
+              <p className="mt-5 text-xs text-gray-500">
+                {existingGalleryUrls.length + galleryFiles.length}/
+                {MAX_GALLERY_FILES} photos selected
+              </p>
+              {existingGalleryUrls.length > 0 ? (
+                <PreviewCards
+                  urls={existingGalleryUrls}
+                  onPreview={setPreviewUrl}
+                  onRemove={(index) =>
+                    setExistingGalleryUrls((prev) =>
+                      prev.filter((_, i) => i !== index),
+                    )
+                  }
+                />
+              ) : null}
+              {galleryObjectUrls.length > 0 ? (
+                <PreviewCards
+                  urls={galleryObjectUrls}
+                  onPreview={setPreviewUrl}
+                  onRemove={(index) =>
+                    setGalleryFiles((prev) =>
+                      prev.filter((_, i) => i !== index),
+                    )
+                  }
+                />
+              ) : null}
+            </Field>
+          </div>
+
+          <div className="mt-6 flex gap-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded bg-[#708DB8] px-4 py-3 font-bold text-white transition hover:bg-[#5f7ba6] disabled:opacity-60"
+            >
+              {saving ? (
+                <ClipLoader color="#fff" size={16} />
+              ) : (
+                "Update project"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/admin/projects")}
+              className="flex-1 rounded bg-gray-300 px-4 py-3 font-bold text-gray-800 transition hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+
+        {previewUrl ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-50 flex cursor-default items-center justify-center bg-black/60 p-4"
+            onClick={() => setPreviewUrl(null)}
+            aria-label="Close preview"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt=""
+              className="max-h-[90vh] max-w-full rounded-lg object-contain shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </button>
+        ) : null}
       </div>
     </div>
   );
 };
+
+const PreviewCards = ({
+  urls,
+  onPreview,
+  onRemove,
+}: {
+  urls: string[];
+  onPreview: (url: string) => void;
+  onRemove: (index: number) => void;
+}) => (
+  <div className="mt-4 flex flex-wrap gap-2 pb-1">
+    {urls.map((url, index) => (
+      <div
+        key={`${url}-${index}`}
+        className="relative shrink-0 overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm"
+      >
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-red-600 text-sm font-bold text-white"
+          aria-label="Remove image"
+        >
+          ×
+        </button>
+        <div className="h-48 w-32 rounded-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="" className="size-full rounded-lg object-cover" />
+        </div>
+        <div className="pt-5">
+          <button
+            type="button"
+            onClick={() => onPreview(url)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#708DB8] py-2 text-sm font-medium text-white transition hover:bg-[#5f7ba6]"
+          >
+            <EyeIcon className="size-4" />
+            View
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <span className="mb-2 block text-sm font-medium text-[#374151]">
+      {label}
+    </span>
+    {children}
+  </div>
+);
 
 export default EditProject;

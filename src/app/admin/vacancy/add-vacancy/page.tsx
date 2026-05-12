@@ -1,169 +1,179 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Sidebar from '@/Components/Sidebar';
-import TokenTimer from '@/Components/TokenTimer';
-import TipTapEditor from '@/Components/TipTapEditor';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FiChevronDown } from "react-icons/fi";
+import Sidebar from "@/Components/Sidebar";
+import TipTapEditor from "@/Components/TipTapEditor";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/Components/ui/tabs";
+import { useApi } from "@/hooks/useApi";
+
+const hasText = (value: string) =>
+  value
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim().length > 0;
 
 const AddVacancy = () => {
-    const [isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [title_tk, setTitleTk] = useState("");
+  const [title_en, setTitleEn] = useState("");
+  const [title_ru, setTitleRu] = useState("");
+  const [text_tk, setTextTk] = useState("");
+  const [text_en, setTextEn] = useState("");
+  const [text_ru, setTextRu] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
-    const [title_tk, setTitleTk] = useState('');
-    const [title_en, setTitleEn] = useState('');
-    const [title_ru, setTitleRu] = useState('');
+  const router = useRouter();
+  const api = useApi();
 
-    const [text_tk, setTextTk] = useState('');
-    const [text_en, setTextEn] = useState('');
-    const [text_ru, setTextRu] = useState('');
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-    const router = useRouter();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationError("");
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+    const requiredFields = [
+      title_tk,
+      title_en,
+      title_ru,
+      text_tk,
+      text_en,
+      text_ru,
+    ];
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    if (requiredFields.some((field) => !hasText(field))) {
+      setValidationError("Please fill in all fields in all languages.");
+      return;
+    }
 
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.error('Нет токена');
-            return;
-        }
+    setSaving(true);
+    try {
+      await api.post("/api/vacancy", {
+        title_tk,
+        title_en,
+        title_ru,
+        text_tk,
+        text_en,
+        text_ru,
+      });
+      router.push("/admin/vacancy");
+    } catch (error) {
+      console.error("Ошибка при добавлении вакансии:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-        try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/vacancy`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        title_tk,
-                        title_en,
-                        title_ru,
-                        text_tk,
-                        text_en,
-                        text_ru,
-                    }),
-                }
-            );
+  return (
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+        <form
+          onSubmit={handleSubmit}
+          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+        >
+          <button
+            type="button"
+            onClick={() => setIsOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4 text-left"
+          >
+            <h2 className="text-xl font-semibold text-[#1f2937]">
+              New vacancy
+            </h2>
+            <FiChevronDown
+              className={`size-5 shrink-0 text-gray-500 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+            />
+          </button>
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText);
-            }
+          {isOpen && (
+            <div className="space-y-6 border-t border-[#eee] px-6 pb-6 pt-6">
+              {validationError ? (
+                <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {validationError}
+                </p>
+              ) : null}
 
-            router.push('/admin/vacancy');
-        } catch (error) {
-            console.error('Ошибка при добавлении вакансии:', error);
-        }
-    };
+              {isClient && (
+                <Tabs defaultValue="russian">
+                  <TabsList className="min-w-0 border border-[#D9D9D9] bg-[#E5ECF6]">
+                    <TabsTrigger value="russian" className="text-sm">
+                      Russian
+                    </TabsTrigger>
+                    <TabsTrigger value="english" className="text-sm">
+                      English
+                    </TabsTrigger>
+                    <TabsTrigger value="turkmen" className="text-sm">
+                      Turkmen
+                    </TabsTrigger>
+                  </TabsList>
 
-    return (
-        <div className="flex bg-gray-200">
-            <Sidebar />
-            <div className="flex-1 p-10 ml-62">
-                <TokenTimer />
+                  <TabsContent value="russian" className="space-y-4 pt-4">
+                    <Field label="Title:">
+                      <TipTapEditor content={title_ru} onChange={setTitleRu} />
+                    </Field>
+                    <Field label="Text:">
+                      <TipTapEditor content={text_ru} onChange={setTextRu} />
+                    </Field>
+                  </TabsContent>
 
-                <div className="mt-8">
-                    <form
-                        onSubmit={handleSubmit}
-                        className="w-full mx-auto p-6 border border-gray-300 rounded-lg shadow-lg bg-white"
-                    >
-                        <h2 className="text-2xl font-bold mb-4">Add vacancy</h2>
+                  <TabsContent value="english" className="space-y-4 pt-4">
+                    <Field label="Title:">
+                      <TipTapEditor content={title_en} onChange={setTitleEn} />
+                    </Field>
+                    <Field label="Text:">
+                      <TipTapEditor content={text_en} onChange={setTextEn} />
+                    </Field>
+                  </TabsContent>
 
-                        {isClient && (
-                            <div className="tabs tabs-lift">
-                                <input
-                                    type="radio"
-                                    name="tabs"
-                                    className="tab"
-                                    aria-label="Turkmen"
-                                    defaultChecked
-                                />
-                                <div className="tab-content p-6 bg-base-100 border-base-300">
-                                    <div className="mb-4">
-                                        <label className="font-semibold block mb-2">
-                                            Title
-                                        </label>
-                                        <input
-                                            value={title_tk}
-                                            onChange={(e) => setTitleTk(e.target.value)}
-                                            className="border rounded p-2 w-full"
-                                        />
-                                    </div>
-
-                                    <TipTapEditor
-                                        content={text_tk}
-                                        onChange={setTextTk}
-                                    />
-                                </div>
-
-                                <input
-                                    type="radio"
-                                    name="tabs"
-                                    className="tab"
-                                    aria-label="English"
-                                />
-                                <div className="tab-content p-6 bg-base-100 border-base-300">
-                                    <div className="mb-4">
-                                        <label className="font-semibold block mb-2">
-                                            Title
-                                        </label>
-                                        <input
-                                            value={title_en}
-                                            onChange={(e) => setTitleEn(e.target.value)}
-                                            className="border rounded p-2 w-full"
-                                        />
-                                    </div>
-
-                                    <TipTapEditor
-                                        content={text_en}
-                                        onChange={setTextEn}
-                                    />
-                                </div>
-
-                                <input
-                                    type="radio"
-                                    name="tabs"
-                                    className="tab"
-                                    aria-label="Russian"
-                                />
-                                <div className="tab-content p-6 bg-base-100 border-base-300">
-                                    <div className="mb-4">
-                                        <label className="font-semibold block mb-2">
-                                            Title
-                                        </label>
-                                        <input
-                                            value={title_ru}
-                                            onChange={(e) => setTitleRu(e.target.value)}
-                                            className="border rounded p-2 w-full"
-                                        />
-                                    </div>
-
-                                    <TipTapEditor
-                                        content={text_ru}
-                                        onChange={setTextRu}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            className="w-full mt-6 bg text-white font-bold py-2 rounded hover:bg-blue-700"
-                        >
-                            Add vacancy
-                        </button>
-                    </form>
-                </div>
+                  <TabsContent value="turkmen" className="space-y-4 pt-4">
+                    <Field label="Title:">
+                      <TipTapEditor content={title_tk} onChange={setTitleTk} />
+                    </Field>
+                    <Field label="Text:">
+                      <TipTapEditor content={text_tk} onChange={setTextTk} />
+                    </Field>
+                  </TabsContent>
+                </Tabs>
+              )}
             </div>
-        </div>
-    );
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-b-xl bg-[#708DB8] py-3 text-lg font-semibold tracking-wide text-white uppercase transition hover:bg-[#5f7ba6] disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 };
+
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <span className="mb-2 block text-sm font-medium text-[#374151]">
+      {label}
+    </span>
+    {children}
+  </div>
+);
 
 export default AddVacancy;

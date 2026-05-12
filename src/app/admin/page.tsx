@@ -1,17 +1,13 @@
-'use client';
+"use client";
 import Sidebar from "@/Components/Sidebar";
-import TokenTimer from "@/Components/TokenTimer";
 
 const AdminPanel = () => {
-
-    return (
-        <div className="flex bg-gray-200">
-            <Sidebar/>
-            <div className="flex-1 p-10 ml-62">
-                <TokenTimer/>
-            </div>
-        </div>
-    );
+  return (
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1 p-10 ml-72 h-screen"></div>
+    </div>
+  );
 };
 
 export default AdminPanel;

@@ -1,58 +1,66 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+"use client";
 
-interface DecodedToken extends JwtPayload {
-    exp: number;
-}
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  getStoredToken,
+  getTokenRemainingMs,
+  isTokenExpired,
+  logoutToLogin,
+} from "@/lib/authToken";
+
+const formatTime = (ms: number) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+};
 
 const TokenTimer = () => {
-    const router = useRouter();
-    const [expirationDate, setExpirationDate] = useState<string>('');
-    const [isTokenValid, setIsTokenValid] = useState<boolean>(true);
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
-    useEffect(() => {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            router.push('/');
-            return;
-        }
+  useEffect(() => {
+    const refresh = () => {
+      const token = getStoredToken();
+      if (!token) {
+        setRemainingMs(null);
+        return;
+      }
 
-        try {
-            const decodedToken = jwt.decode(token) as DecodedToken | null;
+      if (isTokenExpired(token, 0)) {
+        logoutToLogin();
+        return;
+      }
 
-            const currentTime = Date.now() / 1000;
+      setRemainingMs(getTokenRemainingMs(token));
+    };
 
-            if (!decodedToken || decodedToken.exp < currentTime) {
-                localStorage.removeItem('auth_token');
-                router.push('/');
-                setIsTokenValid(false);
-                return;
-            }
+    refresh();
+    const interval = window.setInterval(refresh, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
-            const expiration = new Date(decodedToken.exp * 1000);
-            setExpirationDate(expiration.toLocaleString());
-            setIsTokenValid(true);
+  const toneClass = useMemo(() => {
+    if (remainingMs === null) return "text-gray-500";
+    if (remainingMs <= 5 * 60 * 1000) return "text-red-600";
+    if (remainingMs <= 15 * 60 * 1000) return "text-amber-600";
+    return "text-gray-700";
+  }, [remainingMs]);
 
-            console.log('Decoded Token:', decodedToken);
-        } catch (error) {
-            console.error("Failed to decode token:", error);
-            localStorage.removeItem('auth_token');
-            router.push('/');
-            setIsTokenValid(false);
-        }
-    }, [router]);
+  if (remainingMs === null) return null;
 
-    return (
-        <div>
-            <h1 className="text-4xl font-bold mb-6">Admin Panel</h1>
-            <p className="text-lg mb-4">
-                {isTokenValid
-                    ? `Expiration Date: ${expirationDate}`
-                    : 'Token is invalid or expired. Please log in again.'}
-            </p>
-        </div>
-    );
+  return (
+    <div className="mx-2 mt-2 rounded-xl border border-white/70 bg-white/70 px-3 py-2 text-xs">
+      <p className="text-gray-600">Token expires in</p>
+      <p className={`mt-0.5 font-semibold ${toneClass}`}>
+        {formatTime(remainingMs)}
+      </p>
+    </div>
+  );
 };
 
 export default TokenTimer;

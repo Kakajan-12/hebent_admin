@@ -1,273 +1,342 @@
-'use client';
-import React, {useEffect, useState} from 'react';
-import {useParams, useRouter} from 'next/navigation';
-import axios from 'axios';
-import TipTapEditor from '@/Components/TipTapEditor';
-import Sidebar from "@/Components/Sidebar";
-import TokenTimer from "@/Components/TokenTimer";
-import {DocumentIcon} from "@heroicons/react/16/solid";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { FiChevronDown } from "react-icons/fi";
 import Image from "next/image";
+import TipTapEditor from "@/Components/TipTapEditor";
+import Sidebar from "@/Components/Sidebar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
+import {
+  buildApiUrl,
+  getApiErrorStatus,
+  getImagePath,
+  useApi,
+} from "@/hooks/useApi";
+import { ClipLoader } from "react-spinners";
+type Data = {
+  title_tk: string;
+  title_en: string;
+  title_ru: string;
+  text_tk: string;
+  text_en: string;
+  text_ru: string;
+  image: unknown;
+  category_id: number;
+};
 
 const EditNews = () => {
-    const {id} = useParams();
-    const router = useRouter();
+  const { id } = useParams();
+  const router = useRouter();
 
-    type Data = {
-        title_tk: string;
-        title_en: string;
-        title_ru: string;
-        text_tk: string;
-        text_en: string;
-        text_ru: string;
-        image: string;
-        category_id: number;
+  const [isClient, setIsClient] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [data, setData] = useState<Data>({
+    title_tk: "",
+    title_en: "",
+    title_ru: "",
+    text_tk: "",
+    text_en: "",
+    text_ru: "",
+    image: "",
+    category_id: 0,
+  });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [category, setCategory] = useState<
+    { id: number; category_en: string }[]
+  >([]);
+  const api = useApi();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categories = await api.get<{ id: number; category_en: string }[]>(
+          "/api/news-category",
+          { withAuth: false },
+        );
+        setCategory(Array.isArray(categories) ? categories : []);
+      } catch (err) {
+        console.error("Ошибка при загрузке данных:", err);
+      }
     };
 
-    const [data, setData] = useState<Data>({
-        title_tk: '',
-        title_en: '',
-        title_ru: '',
-        text_tk: '',
-        text_en: '',
-        text_ru: '',
-        image: '',
-        category_id: 0
-    });
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [category, setCategory] = useState<{ id: number, category_en: string }[]>([]);
+    fetchCategories();
+  }, [api]);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [catRes] = await Promise.all([
-                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/news-category`),
-                ]);
-                const [catData] = await Promise.all([
-                    catRes.json(),
-                ]);
+  useEffect(() => {
+    if (!id) return;
 
-                setCategory(catData);
-            } catch (err) {
-                console.error('Ошибка при загрузке данных:', err);
-            }
-        };
+    const fetchData = async () => {
+      try {
+        const response = await api.get<Data[] | Data>(`/api/news/${id}`);
+        const news = Array.isArray(response) ? response[0] : response;
 
-        fetchData();
-    }, []);
-
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem('auth_token');
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/news/${id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (response.data && response.data.id) {
-                    const rawData = response.data;
-
-                    setData({
-                        ...rawData
-                    });
-
-                    setLoading(false);
-                } else {
-                    throw new Error("Данные не найдены");
-                }
-            } catch (err) {
-                console.error('Ошибка при загрузке данных:', err);
-                setError('Ошибка при загрузке');
-                setLoading(false);
-            }
-        };
-
-        if (id) fetchData();
-    }, [id]);
-
-    const handleEditorChange = (name: keyof typeof data, content: string) => {
-        setData((prev) => ({...prev, [name]: content}));
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        try {
-            const token = localStorage.getItem('auth_token');
-
-            const formData = new FormData();
-            formData.append('title_tk', data.title_tk);
-            formData.append('title_en', data.title_en);
-            formData.append('title_ru', data.title_ru);
-            formData.append('text_tk', data.text_tk);
-            formData.append('text_en', data.text_en);
-            formData.append('text_ru', data.text_ru);
-            formData.append('category_id', String(data.category_id));
-
-
-            if (imageFile) {
-                formData.append('image', imageFile);
-            } else {
-                formData.append('image', data.image);
-            }
-
-            await axios.put(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/news/${id}`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data',
-                    },
-                }
-            );
-
-            router.push(`/admin/news/view-news/${id}`);
-        } catch (err) {
-            console.error(err);
-            setError('Ошибка при сохранении');
+        if (news) {
+          setData({ ...news });
+        } else {
+          throw new Error("Данные не найдены");
         }
+      } catch (err) {
+        console.error("Ошибка при загрузке данных:", err);
+        setFetchError("Ошибка при загрузке");
+
+        if (getApiErrorStatus(err) === 401) {
+          router.push("/");
+        }
+      } finally {
+        setLoaded(true);
+      }
     };
 
-    if (loading) return <p>Загрузка...</p>;
-    if (error) return <p>{error}</p>;
+    fetchData();
+  }, [api, id, router]);
 
+  const handleEditorChange = (name: keyof Data, content: string) => {
+    setData((prev) => ({ ...prev, [name]: content }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaveError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("title_tk", data.title_tk);
+      formData.append("title_en", data.title_en);
+      formData.append("title_ru", data.title_ru);
+      formData.append("text_tk", data.text_tk);
+      formData.append("text_en", data.text_en);
+      formData.append("text_ru", data.text_ru);
+      formData.append("category_id", String(data.category_id));
+
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      await api.put(`/api/news/${id}`, formData);
+
+      router.push(`/admin/news`);
+    } catch (err) {
+      console.error(err);
+      setSaveError("Ошибка при сохранении");
+
+      if (getApiErrorStatus(err) === 401) {
+        router.push("/");
+      }
+    }
+  };
+
+  if (!loaded) {
     return (
-        <div className="flex bg-gray-200 min-h-screen">
-            <Sidebar/>
-            <div className="flex-1 p-10 ml-62">
-                <TokenTimer/>
-                <div className="mt-8">
-                    <h1 className="text-2xl font-bold mb-4">Edit news</h1>
-                    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded shadow">
-                        {data.image && (
-                            <div className="mb-4">
-                                <label className="block font-semibold mb-2">Current image:</label>
-                                <Image
-                                    src={`${process.env.NEXT_PUBLIC_API_URL}/${data.image.replace('\\', '/')}`}
-                                    alt="News"
-                                    width={200}
-                                    height={200}
-                                    className="w-64 rounded"
-                                />
-                            </div>
-                        )}
-                        <div className="mb-4 flex space-x-4">
-                            <div className="w-full">
-                                <div className="mb-4">
-                                    <label htmlFor="image" className="block font-semibold mb-2">New image:</label>
-                                    <input
-                                        type="file"
-                                        id="image"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            if (e.target.files && e.target.files[0]) {
-                                                setImageFile(e.target.files[0]);
-                                            }
-                                        }}
-                                        className="border border-gray-300 rounded p-2 w-full"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="w-full">
-                                <label className="block text-gray-700 font-semibold mb-2">
-                                    Select Category:
-                                </label>
-                                <select
-                                    id="category_id"
-                                    name="category_id"
-                                    value={data.category_id}
-                                    onChange={(e) =>
-                                        setData((prev) => ({
-                                            ...prev,
-                                            category_id: Number(e.target.value),
-                                        }))
-                                    }
-                                    required
-                                    className="border border-gray-300 rounded p-2 w-full"
-                                >
-                                    <option value="">Select type</option>
-                                    {category.map((cat) => (
-                                        <option key={cat.id} value={cat.id}>
-                                            {cat.category_en}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="tabs tabs-lift">
-                            <input type="radio" name="my_tabs_3" className="tab" aria-label="Turkmen" defaultChecked/>
-                            <div className="tab-content bg-base-100 border-base-300 p-6">
-                                <div className="mb-4">
-                                    <label className="block font-semibold mb-2">Title</label>
-                                    <TipTapEditor
-                                        content={data.title_tk}
-                                        onChange={(content) => handleEditorChange('title_tk', content)}
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block font-semibold mb-2">Text:</label>
-                                    <TipTapEditor
-                                        content={data.text_tk}
-                                        onChange={(content) => handleEditorChange('text_tk', content)}
-                                    />
-                                </div>
-                            </div>
-
-                            <input type="radio" name="my_tabs_3" className="tab" aria-label="English"/>
-                            <div className="tab-content bg-base-100 border-base-300 p-6">
-                                <div className="mb-4">
-                                    <label className="block font-semibold mb-2">Title:</label>
-                                    <TipTapEditor
-                                        content={data.title_en}
-                                        onChange={(content) => handleEditorChange('title_en', content)}
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block font-semibold mb-2">Text:</label>
-                                    <TipTapEditor
-                                        content={data.text_en}
-                                        onChange={(content) => handleEditorChange('text_en', content)}
-                                    />
-                                </div>
-                            </div>
-
-                            <input type="radio" name="my_tabs_3" className="tab" aria-label="Russian"/>
-                            <div className="tab-content bg-base-100 border-base-300 p-6">
-                                <div className="mb-4">
-                                    <label className="block font-semibold mb-2">Title:</label>
-                                    <TipTapEditor
-                                        content={data.title_ru}
-                                        onChange={(content) => handleEditorChange('title_ru', content)}
-                                    />
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block font-semibold mb-2">Text:</label>
-                                    <TipTapEditor
-                                        content={data.text_ru}
-                                        onChange={(content) => handleEditorChange('text_ru', content)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="bg text-white px-4 py-2 rounded flex items-center hover:bg-blue-700"
-                        >
-                            <DocumentIcon className="size-5 mr-2"/>
-                            Save
-                        </button>
-                    </form>
-                </div>
-            </div>
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 ml-72 mr-7 py-10">
+          <p className="mt-8 text-gray-500">
+            <ClipLoader size={80} color="#708DB8" />
+          </p>
         </div>
+      </div>
     );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 ml-72 mr-7 py-10">
+          <p className="mt-8 text-red-600">{fetchError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const imagePath = getImagePath(data.image);
+  const imageSrc = imagePath ? buildApiUrl(imagePath) : "";
+
+  return (
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1 ml-79 mr-7">
+        {saveError ? (
+          <p className="mt-4 text-sm text-red-600">{saveError}</p>
+        ) : null}
+        <form
+          onSubmit={handleSubmit}
+          className="my-8 w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+        >
+          <button
+            type="button"
+            onClick={() => setIsOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4"
+          >
+            <h2 className="text-xl font-semibold">Edit news</h2>
+            <FiChevronDown
+              className={`size-5 text-gray-500 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+            />
+          </button>
+
+          {isOpen && (
+            <div className="space-y-6 px-6 pb-6">
+              {imageSrc ? (
+                <div>
+                  <p className="mb-2 text-sm font-medium text-gray-600">
+                    Current image
+                  </p>
+                  <Image
+                    src={imageSrc}
+                    alt="News"
+                    width={200}
+                    height={200}
+                    className="max-h-48 max-w-xs rounded-lg object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : null}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="image"
+                    className="mb-2 block text-sm font-medium"
+                  >
+                    News cover image
+                  </label>
+                  <input
+                    type="file"
+                    id="image"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) setImageFile(e.target.files[0]);
+                    }}
+                    className="w-full rounded-lg border border-gray-300 p-2 transition focus:border-blue-500 focus:ring focus:ring-blue-200"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="category_id"
+                    className="mb-2 block text-sm font-medium"
+                  >
+                    Category
+                  </label>
+                  <select
+                    id="category_id"
+                    name="category_id"
+                    value={data.category_id || ""}
+                    onChange={(e) =>
+                      setData((prev) => ({
+                        ...prev,
+                        category_id: Number(e.target.value),
+                      }))
+                    }
+                    required
+                    className="w-full rounded-lg border border-gray-300 p-2 transition focus:border-blue-500 focus:ring focus:ring-blue-200"
+                  >
+                    <option value="">Select category</option>
+                    {category.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.category_en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {isClient && (
+                <Tabs defaultValue="russian">
+                  <TabsList className="min-w-xl border border-[#D9D9D9] bg-[#E5ECF6]">
+                    <TabsTrigger value="russian" className="text-sm">
+                      Russian
+                    </TabsTrigger>
+                    <TabsTrigger value="english">English</TabsTrigger>
+                    <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="russian" className="space-y-4 pt-4">
+                    <Field label="Title:">
+                      <TipTapEditor
+                        key={`title-ru-${id}`}
+                        content={data.title_ru}
+                        onChange={(c) => handleEditorChange("title_ru", c)}
+                      />
+                    </Field>
+                    <Field label="Text:">
+                      <TipTapEditor
+                        key={`text-ru-${id}`}
+                        content={data.text_ru}
+                        onChange={(c) => handleEditorChange("text_ru", c)}
+                      />
+                    </Field>
+                  </TabsContent>
+
+                  <TabsContent value="english" className="space-y-4 pt-4">
+                    <Field label="Title:">
+                      <TipTapEditor
+                        key={`title-en-${id}`}
+                        content={data.title_en}
+                        onChange={(c) => handleEditorChange("title_en", c)}
+                      />
+                    </Field>
+                    <Field label="Text:">
+                      <TipTapEditor
+                        key={`text-en-${id}`}
+                        content={data.text_en}
+                        onChange={(c) => handleEditorChange("text_en", c)}
+                      />
+                    </Field>
+                  </TabsContent>
+
+                  <TabsContent value="turkmen" className="space-y-4 pt-4">
+                    <Field label="Title:">
+                      <TipTapEditor
+                        key={`title-tk-${id}`}
+                        content={data.title_tk}
+                        onChange={(c) => handleEditorChange("title_tk", c)}
+                      />
+                    </Field>
+                    <Field label="Text:">
+                      <TipTapEditor
+                        key={`text-tk-${id}`}
+                        content={data.text_tk}
+                        onChange={(c) => handleEditorChange("text_tk", c)}
+                      />
+                    </Field>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="text-xl w-full rounded-xl bg-[#708DB8] py-2 font-semibold uppercase tracking-wide text-white transition hover:bg-[#D9D9D9]"
+          >
+            Save
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 };
+
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <label className="mb-2 block text-sm font-medium">{label}</label>
+    {children}
+  </div>
+);
 
 export default EditNews;

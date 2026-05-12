@@ -1,9 +1,15 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useApi } from "@/hooks/useApi";
+
+type LoginResponse = {
+  token: string;
+};
 
 const Login = () => {
   const router = useRouter();
+  const api = useApi();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -13,29 +19,16 @@ const Login = () => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ username, password }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.errors ? errorData.errors[0].msg : "Login failed");
-        return;
-      }
-      const data = await response.json();
+      const data = await api.post<
+        LoginResponse,
+        { username: string; password: string }
+      >("/api/auth/login", { username, password }, { withAuth: false });
 
       localStorage.setItem("auth_token", data.token);
       router.push("/admin");
     } catch (error) {
       console.error(error);
-      setError("An unexpected error occurred");
+      setError("Login failed");
     }
   };
 
@@ -43,7 +36,7 @@ const Login = () => {
     <div className="w-full h-screen flex justify-center items-center">
       <div className="p-10 rounded-md border border-gray-200 bg-white max-w-md w-full">
         <h1 className="text-white text-center mb-5 text-2xl font-bold color">
-          ARHEA Admin Panel
+          Hebent Admin Panel
         </h1>
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col items-start w-full">

@@ -1,383 +1,368 @@
-'use client';
-import React, {useEffect, useState, Fragment} from 'react';
-import {useParams, useRouter} from 'next/navigation';
-import axios, {AxiosError} from 'axios';
-import Image from 'next/image';
-import Sidebar from '@/Components/Sidebar';
-import TokenTimer from '@/Components/TokenTimer';
-import {Menu, Transition} from '@headlessui/react';
-import {
-    ChevronDownIcon,
-    PencilIcon,
-    TrashIcon,
-} from '@heroicons/react/16/solid';
+"use client";
 
-type Data = {
-    image?: string;
-    [key: string]: string | undefined;
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  ArrowLeftIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/16/solid";
+
+import Sidebar from "@/Components/Sidebar";
+import {
+  buildApiUrl,
+  getApiErrorStatus,
+  getImagePath,
+  useApi,
+} from "@/hooks/useApi";
+import Link from "next/link";
+import { ClipLoader } from "react-spinners";
+type ProjectData = {
+  id: number;
+  image?: unknown;
+  title_tk: string;
+  title_en: string;
+  title_ru: string;
+  text_tk: string;
+  text_en: string;
+  text_ru: string;
+  costumer_tk: string;
+  costumer_en: string;
+  costumer_ru: string;
+  website: string;
+  gallery?: unknown[];
+  details?: ProjectDetail[];
+};
+
+type ProjectDetail = {
+  id?: number;
+  title_tk: string;
+  title_en: string;
+  title_ru: string;
+  text_tk: string;
+  text_en: string;
+  text_ru: string;
 };
 
 const ViewProject = () => {
-    const {id} = useParams();
-    const router = useRouter();
+  const { id } = useParams();
+  const router = useRouter();
+  const api = useApi();
 
-    const [data, setData] = useState<Data | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [showModal, setShowModal] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
+  const [data, setData] = useState<ProjectData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  useEffect(() => {
+    if (!id) return;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const token = localStorage.getItem('auth_token');
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setData(response.data);
-            } catch (err) {
-                const axiosError = err as AxiosError;
-                console.error(axiosError);
-                setError('Ошибка при получении данных');
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get<ProjectData[] | ProjectData>(
+          `/api/projects/${id}`,
+        );
+        const project = Array.isArray(response) ? response[0] : response;
 
-                if (axios.isAxiosError(axiosError) && axiosError.response?.status === 401) {
-                    router.push('/');
-                }
-            }
-        };
-
-        if (id) fetchData();
-    }, [id, router]);
-
-    const handleDelete = async () => {
-        setIsDeleting(true);
-        try {
-            const token = localStorage.getItem('auth_token');
-            await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/projects/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            router.push('/admin/projects');
-        } catch (err) {
-            console.error('Ошибка при удалении:', err);
-        } finally {
-            setIsDeleting(false);
-            setShowModal(false);
+        if (!project) {
+          setError("Project not found");
+          return;
         }
+
+        setData(project);
+      } catch (err) {
+        console.error(err);
+        setError("Ошибка при получении данных");
+
+        if (getApiErrorStatus(err) === 401) {
+          router.push("/");
+        }
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (error) return <div className="text-red-500 p-4">{error}</div>;
-    if (!data) return <div className="p-4">Загрузка...</div>;
+    fetchData();
+  }, [api, id, router]);
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+
+    try {
+      await api.delete(`/api/projects/${id}`);
+      setShowModal(false);
+      router.push("/admin/projects");
+    } catch (err) {
+      console.error("Ошибка при удалении:", err);
+      setError("Ошибка при удалении");
+
+      if (getApiErrorStatus(err) === 401) {
+        router.push("/");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="flex bg-gray-200 min-h-screen">
-            <Sidebar/>
-            <div className="flex-1 p-10 ml-62">
-                <TokenTimer/>
-                <div className="mt-8">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl font-bold">View project</h2>
-                        <Menu as="div" className="relative inline-block text-left">
-                            <Menu.Button
-                                className="inline-flex items-center gap-2 rounded-md bg-gray-800 py-1.5 px-3 text-sm font-semibold text-white hover:bg-gray-700">
-                                Options
-                                <ChevronDownIcon className="w-4 h-4 fill-white/60"/>
-                            </Menu.Button>
-                            <Transition
-                                as={Fragment}
-                                enter="transition ease-out duration-100"
-                                enterFrom="transform opacity-0 scale-95"
-                                enterTo="transform opacity-100 scale-100"
-                                leave="transition ease-in duration-75"
-                                leaveFrom="transform opacity-100 scale-100"
-                                leaveTo="transform opacity-0 scale-95"
-                            >
-                                <Menu.Items
-                                    className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                                    <div className="py-1">
-                                        <Menu.Item>
-                                            {({active}) => (
-                                                <button
-                                                    onClick={() => router.push(`/admin/projects/edit-project/${id}`)}
-                                                    className={`${
-                                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                                                    } group flex items-center w-full px-4 py-2 text-sm`}
-                                                >
-                                                    <PencilIcon className="w-4 h-4 mr-2 text-gray-400"/>
-                                                    Edit
-                                                </button>
-                                            )}
-                                        </Menu.Item>
-                                        <div className="border-t border-gray-100"/>
-                                        <Menu.Item>
-                                            {({active}) => (
-                                                <button
-                                                    onClick={() => setShowModal(true)}
-                                                    className={`${
-                                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                                                    } group flex items-center w-full px-4 py-2 text-sm`}
-                                                >
-                                                    <TrashIcon className="w-4 h-4 mr-2 text-gray-400"/>
-                                                    Delete
-                                                </button>
-                                            )}
-                                        </Menu.Item>
-                                    </div>
-                                </Menu.Items>
-                            </Transition>
-                        </Menu>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-md shadow space-x-6 flex">
-                        <div>
-                            {data.image && (
-                                <Image
-                                    src={`${process.env.NEXT_PUBLIC_API_URL}/${data.image.replace('\\', '/')}`}
-                                    alt={data.image}
-                                    width={600}
-                                    height={400}
-                                    className="rounded"
-                                />
-                            )}
-                            <div className="space-y-6">
-                                <div>
-                                    <strong>Style:</strong>
-                                    <p>{data.style_tk}</p>
-                                    <p>{data.style_en}</p>
-                                    <p>{data.style_ru}</p>
-                                </div>
-                                <div>
-                                    <strong>Type:</strong>
-                                    <p>{data.type_tk}</p>
-                                    <p>{data.type_en}</p>
-                                    <p>{data.type_ru}</p>
-                                </div>
-                                <div>
-                                    <strong>Location:</strong>
-                                    <p>{data.location_tk}</p>
-                                    <p>{data.location_en}</p>
-                                    <p>{data.location_ru}</p>
-                                </div>
-                                <div>
-                                    <strong>Date:</strong>
-                                    <p>{data.start_date}</p>
-                                    <p>{data.end_date}</p>
-                                </div>
-                                <div>
-                                    <strong>Area:</strong>
-                                    <p>{data.area}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 space-y-10 divide-y-1">
-                            <div>
-                                <div className="font-bold text-lg mb-2">Turkmen</div>
-                                {data.title_tk && (
-                                    <div><strong>Title:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.title_tk}}/>
-                                    </div>
-                                )}
-                                {data.client_tk && (
-                                    <div><strong>Client:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.client_tk}}/>
-                                    </div>
-                                )}
-                                {data.first_section_tk && (
-                                    <div><strong>1 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.first_section_tk}}/>
-                                    </div>
-                                )}
-                                {data.second_section_tk && (
-                                    <div><strong>2 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.second_section_tk}}/>
-                                    </div>
-                                )}
-                                {data.third_section_tk && (
-                                    <div><strong>3 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.third_section_tk}}/>
-                                    </div>
-                                )}
-                                {data.architect_tk && (
-                                    <div><strong>Architect:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.architect_tk}}/>
-                                    </div>
-                                )}
-                                {data.lead_designer_tk && (
-                                    <div><strong>Lead Designer:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.lead_designer_tk}}/>
-                                    </div>
-                                )}
-                                {data.interior_designer_tk && (
-                                    <div><strong>Interior Designer:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.interior_designer_tk}}/>
-                                    </div>
-                                )}
-                                {data.p_manager_tk && (
-                                    <div><strong>Project Manager:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.p_manager_tk}}/>
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <div className="font-bold text-lg mb-2">English</div>
-                                {data.title_en && (
-                                    <div><strong>Title:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.title_en}}/>
-                                    </div>
-                                )}
-                                {data.client_en && (
-                                    <div><strong>Client:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.client_en}}/>
-                                    </div>
-                                )}
-                                {data.first_section_en && (
-                                    <div><strong>1 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.first_section_en}}/>
-                                    </div>
-                                )}
-                                {data.second_section_en && (
-                                    <div><strong>2 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.second_section_en}}/>
-                                    </div>
-                                )}
-                                {data.third_section_en && (
-                                    <div><strong>3 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.third_section_en}}/>
-                                    </div>
-                                )}
-                                {data.architect_en && (
-                                    <div><strong>Architect:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.architect_en}}/>
-                                    </div>
-                                )}
-                                {data.lead_designer_en && (
-                                    <div><strong>Lead Designer:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.lead_designer_en}}/>
-                                    </div>
-                                )}
-                                {data.interior_designer_en && (
-                                    <div><strong>Interior Designer:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.interior_designer_en}}/>
-                                    </div>
-                                )}
-                                {data.p_manager_en && (
-                                    <div><strong>Project Manager:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.p_manager_en}}/>
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <div className="font-bold text-lg mb-2">Russian</div>
-                                {data.title_ru && (
-                                    <div><strong>Title:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.title_ru}}/>
-                                    </div>
-                                )}
-                                {data.client_ru && (
-                                    <div><strong>Client:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.client_ru}}/>
-                                    </div>
-                                )}
-                                {data.first_section_ru && (
-                                    <div><strong>1 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.first_section_ru}}/>
-                                    </div>
-                                )}
-                                {data.second_section_ru && (
-                                    <div><strong>2 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.second_section_ru}}/>
-                                    </div>
-                                )}
-                                {data.third_section_ru && (
-                                    <div><strong>3 section:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.third_section_ru}}/>
-                                    </div>
-                                )}
-                                {data.architect_ru && (
-                                    <div><strong>Architect:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.architect_ru}}/>
-                                    </div>
-                                )}
-                                {data.lead_designer_ru && (
-                                    <div><strong>Lead Designer:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.lead_designer_ru}}/>
-                                    </div>
-                                )}
-                                {data.interior_designer_ru && (
-                                    <div><strong>Interior Designer:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.interior_designer_ru}}/>
-                                    </div>
-                                )}
-                                {data.p_manager_ru && (
-                                    <div><strong>Project Manager:</strong>
-                                        <div dangerouslySetInnerHTML={{__html: data.p_manager_ru}}/>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-10">
-                                <div className="text-xl font-semibold mb-4">Gallery</div>
-                                <div className="grid grid-cols-4 gap-4">
-                                    {Array.isArray(data.gallery) && data.gallery.map((img: string, index: number) => (
-                                        <div key={index} className="relative w-full h-40">
-                                            <Image
-                                                src={`${process.env.NEXT_PUBLIC_API_URL}/${img}`}
-                                                alt={`gallery-${index}`}
-                                                fill
-                                                className="object-cover rounded"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="text-xl font-semibold mb-4">Drawing</div>
-                                <div className="grid grid-cols-4 gap-4">
-                                    {Array.isArray(data.drawings) && data.drawings.map((img: string, index: number) => (
-                                        <div key={index} className="relative w-full h-40">
-                                            <Image
-                                                src={`${process.env.NEXT_PUBLIC_API_URL}/${img}`}
-                                                alt={`drawing-${index}`}
-                                                fill
-                                                className="object-cover rounded"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-
-                        </div>
-                    </div>
-                </div>
-
-                {showModal && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-                        <div className="bg-white p-6 rounded shadow-md w-96">
-                            <h2 className="text-lg font-bold mb-4">Remove tour</h2>
-                            <p className="mb-6">Are you sure you want to delete this project?</p>
-                            <div className="flex justify-end space-x-4">
-                                <button
-                                    className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-                                    onClick={() => setShowModal(false)}
-                                    disabled={isDeleting}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600"
-                                    onClick={handleDelete}
-                                    disabled={isDeleting}
-                                >
-                                    {isDeleting ? 'Deleting...' : 'Delete'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <ClipLoader size={80} color="#708DB8" />
         </div>
+      </div>
     );
+  }
+  if (error) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="mt-8 text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const mainImagePath = getImagePath(data?.image ?? {});
+  const mainImageSrc = mainImagePath ? buildApiUrl(mainImagePath) : "";
+
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-1 p-10 ml-79 mr-7 min-h-screen">
+        <div className="mt-8">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-bold">View project</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/admin/projects"
+                className="inline-flex items-center gap-2 rounded-md border border-[#D9D9D9] px-4 py-2 text-sm transition hover:bg-gray-50"
+              >
+                <ArrowLeftIcon className="size-4" />
+                Back
+              </Link>
+              <Link
+                href={`/admin/projects/edit-project/${id}`}
+                className="inline-flex items-center gap-2 rounded-md border border-[#708DB8] px-4 py-2 text-sm text-[#708DB8] transition hover:bg-[#F7F9FC]"
+              >
+                <PencilIcon className="size-4" />
+                Edit
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
+              >
+                <TrashIcon className="size-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-6 rounded-md bg-white p-6 shadow">
+            {mainImageSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={mainImageSrc}
+                alt={data?.title_en || `project ${data?.id}`}
+                className="h-fit max-w-[420px] rounded object-cover"
+              />
+            ) : null}
+
+            <div className="flex-1 space-y-8">
+              <Info label="Website">
+                {data?.website ? (
+                  <a
+                    href={data?.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#708DB8] underline"
+                  >
+                    {data?.website}
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </Info>
+
+              <LanguageBlock
+                title="Turkmen"
+                projectTitle={data?.title_tk ?? ""}
+                text={data?.text_tk ?? ""}
+                costumer={data?.costumer_tk ?? ""}
+              />
+              <LanguageBlock
+                title="English"
+                projectTitle={data?.title_en ?? ""}
+                text={data?.text_en ?? ""}
+                costumer={data?.costumer_en ?? ""}
+              />
+              <LanguageBlock
+                title="Russian"
+                projectTitle={data?.title_ru ?? ""}
+                text={data?.text_ru ?? ""}
+                costumer={data?.costumer_ru ?? ""}
+              />
+
+              {Array.isArray(data?.gallery) && data?.gallery.length > 0 ? (
+                <div className="border-t border-[#D9D9D9] pt-6">
+                  <div className="mb-4 text-lg font-bold">Gallery</div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {data?.gallery.map((galleryItem, index) => {
+                      const imagePath = getImagePath(galleryItem);
+                      if (!imagePath) return null;
+
+                      return (
+                        <div
+                          key={`${imagePath}-${index}`}
+                          className="relative h-40"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={buildApiUrl(imagePath)}
+                            alt={`gallery-${index + 1}`}
+                            className="size-full rounded object-cover"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {Array.isArray(data?.details) && data?.details.length > 0 ? (
+                <div className="border-t border-[#D9D9D9] pt-6">
+                  <div className="mb-4 text-lg font-bold">Details</div>
+                  <div className="space-y-6">
+                    {data?.details.map((detail, index) => (
+                      <div
+                        key={detail.id ?? index}
+                        className="rounded-lg border border-[#D9D9D9] p-4"
+                      >
+                        <div className="mb-4 font-semibold">
+                          Detail {index + 1}
+                        </div>
+                        <DetailLanguageBlock
+                          title="Turkmen"
+                          detailTitle={detail?.title_tk}
+                          text={detail?.text_tk}
+                        />
+                        <DetailLanguageBlock
+                          title="English"
+                          detailTitle={detail?.title_en}
+                          text={detail?.text_en}
+                        />
+                        <DetailLanguageBlock
+                          title="Russian"
+                          detailTitle={detail?.title_ru}
+                          text={detail?.text_ru}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        {showModal ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-md">
+              <h2 className="mb-4 text-xl font-semibold">Delete project?</h2>
+              <p className="mb-6 text-gray-600">
+                Are you sure you want to delete this project? This action cannot
+                be undone.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="rounded bg-gray-300 px-4 py-2 hover:bg-gray-400 disabled:opacity-50"
+                  onClick={() => setShowModal(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-50"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <ClipLoader size={80} color="#708DB8" />
+                  ) : (
+                    "Delete"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
 };
+
+const Info = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <strong>{label}:</strong>
+    <div>{children}</div>
+  </div>
+);
+
+const LanguageBlock = ({
+  title,
+  projectTitle,
+  text,
+  costumer,
+}: {
+  title: string;
+  projectTitle: string;
+  text: string;
+  costumer: string;
+}) => (
+  <div className="border-t border-[#D9D9D9] pt-6">
+    <div className="mb-2 text-lg font-bold">{title}</div>
+    <Info label="Title">
+      <div dangerouslySetInnerHTML={{ __html: projectTitle }} />
+    </Info>
+    <Info label="Text">
+      <div dangerouslySetInnerHTML={{ __html: text }} />
+    </Info>
+    <Info label="Costumer">
+      <div dangerouslySetInnerHTML={{ __html: costumer }} />
+    </Info>
+  </div>
+);
+
+const DetailLanguageBlock = ({
+  title,
+  detailTitle,
+  text,
+}: {
+  title: string;
+  detailTitle: string;
+  text: string;
+}) => (
+  <div className="border-t border-[#D9D9D9] pt-4 first:border-t-0 first:pt-0">
+    <div className="mb-2 font-semibold">{title}</div>
+    <Info label="Title">
+      <div dangerouslySetInnerHTML={{ __html: detailTitle }} />
+    </Info>
+    <Info label="Text">
+      <div dangerouslySetInnerHTML={{ __html: text }} />
+    </Info>
+  </div>
+);
 
 export default ViewProject;
