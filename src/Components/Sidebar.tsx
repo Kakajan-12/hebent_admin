@@ -187,7 +187,7 @@ const Sidebar = () => {
                   <span className="truncate">{item.title}</span>
                 </span>
                 <GoChevronRight
-                  className="size-5 text-[#A3C8FF] shrink-0 bg-white rounded-full p-1"
+                  className="size-5 text-[#A3C8FF] shrink-0"
                   aria-hidden
                 />
               </Link>
