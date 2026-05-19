@@ -8,7 +8,6 @@ import {
   TrashIcon,
 } from "@heroicons/react/16/solid";
 
-import Sidebar from "@/Components/Sidebar";
 import {
   buildApiUrl,
   getApiErrorStatus,
@@ -107,21 +106,15 @@ const ViewProject = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <ClipLoader size={80} color="#708DB8" />
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
   if (error) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="mt-8 text-red-600">{error}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{error}</p>
       </div>
     );
   }
@@ -131,141 +124,138 @@ const ViewProject = () => {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 p-10 ml-79 mr-7 min-h-screen">
-        <div className="mt-8">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold">View project</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/admin/projects"
-                className="inline-flex items-center gap-2 rounded-md border border-[#D9D9D9] px-4 py-2 text-sm transition hover:bg-gray-50"
-              >
-                <ArrowLeftIcon className="size-4" />
-                Back
-              </Link>
-              <Link
-                href={`/admin/projects/edit-project/${id}`}
-                className="inline-flex items-center gap-2 rounded-md border border-[#708DB8] px-4 py-2 text-sm text-[#708DB8] transition hover:bg-[#F7F9FC]"
-              >
-                <PencilIcon className="size-4" />
-                Edit
-              </Link>
-              <button
-                type="button"
-                onClick={() => setShowModal(true)}
-                className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
-              >
-                <TrashIcon className="size-4" />
-                Delete
-              </button>
-            </div>
+      <div className="flex-1 min-h-screen">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold">View project</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/projects"
+              className="inline-flex items-center gap-2 rounded-md border border-[#D9D9D9] px-4 py-2 text-sm transition hover:bg-gray-50"
+            >
+              <ArrowLeftIcon className="size-4" />
+              Back
+            </Link>
+            <Link
+              href={`/admin/projects/edit-project/${id}`}
+              className="inline-flex items-center gap-2 rounded-md border border-[#708DB8] px-4 py-2 text-sm text-[#708DB8] transition hover:bg-[#F7F9FC]"
+            >
+              <PencilIcon className="size-4" />
+              Edit
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
+            >
+              <TrashIcon className="size-4" />
+              Delete
+            </button>
           </div>
+        </div>
 
-          <div className="flex gap-6 rounded-md bg-white p-6 shadow">
-            {mainImageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={mainImageSrc}
-                alt={data?.title_en || `project ${data?.id}`}
-                className="h-fit max-w-[420px] rounded object-cover"
-              />
-            ) : null}
+        <div className="flex gap-6 rounded-md bg-white p-6 shadow">
+          {mainImageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={mainImageSrc}
+              alt={data?.title_en || `project ${data?.id}`}
+              className="h-fit max-w-[420px] rounded object-cover"
+            />
+          ) : null}
 
-            <div className="flex-1 space-y-8">
-              <Info label="Website">
-                {data?.website ? (
-                  <a
-                    href={data?.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#708DB8] underline"
-                  >
-                    {data?.website}
-                  </a>
-                ) : (
-                  "-"
-                )}
-              </Info>
+          <div className="flex-1 space-y-8">
+            <Info label="Website">
+              {data?.website ? (
+                <a
+                  href={data?.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#708DB8] underline"
+                >
+                  {data?.website}
+                </a>
+              ) : (
+                "-"
+              )}
+            </Info>
 
-              <LanguageBlock
-                title="Turkmen"
-                projectTitle={data?.title_tk ?? ""}
-                text={data?.text_tk ?? ""}
-                costumer={data?.costumer_tk ?? ""}
-              />
-              <LanguageBlock
-                title="English"
-                projectTitle={data?.title_en ?? ""}
-                text={data?.text_en ?? ""}
-                costumer={data?.costumer_en ?? ""}
-              />
-              <LanguageBlock
-                title="Russian"
-                projectTitle={data?.title_ru ?? ""}
-                text={data?.text_ru ?? ""}
-                costumer={data?.costumer_ru ?? ""}
-              />
+            <LanguageBlock
+              title="Turkmen"
+              projectTitle={data?.title_tk ?? ""}
+              text={data?.text_tk ?? ""}
+              costumer={data?.costumer_tk ?? ""}
+            />
+            <LanguageBlock
+              title="English"
+              projectTitle={data?.title_en ?? ""}
+              text={data?.text_en ?? ""}
+              costumer={data?.costumer_en ?? ""}
+            />
+            <LanguageBlock
+              title="Russian"
+              projectTitle={data?.title_ru ?? ""}
+              text={data?.text_ru ?? ""}
+              costumer={data?.costumer_ru ?? ""}
+            />
 
-              {Array.isArray(data?.gallery) && data?.gallery.length > 0 ? (
-                <div className="border-t border-[#D9D9D9] pt-6">
-                  <div className="mb-4 text-lg font-bold">Gallery</div>
-                  <div className="grid grid-cols-3 gap-4">
-                    {data?.gallery.map((galleryItem, index) => {
-                      const imagePath = getImagePath(galleryItem);
-                      if (!imagePath) return null;
+            {Array.isArray(data?.gallery) && data?.gallery.length > 0 ? (
+              <div className="border-t border-[#D9D9D9] pt-6">
+                <div className="mb-4 text-lg font-bold">Gallery</div>
+                <div className="grid grid-cols-3 gap-4">
+                  {data?.gallery.map((galleryItem, index) => {
+                    const imagePath = getImagePath(galleryItem);
+                    if (!imagePath) return null;
 
-                      return (
-                        <div
-                          key={`${imagePath}-${index}`}
-                          className="relative h-40"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={buildApiUrl(imagePath)}
-                            alt={`gallery-${index + 1}`}
-                            className="size-full rounded object-cover"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              {Array.isArray(data?.details) && data?.details.length > 0 ? (
-                <div className="border-t border-[#D9D9D9] pt-6">
-                  <div className="mb-4 text-lg font-bold">Details</div>
-                  <div className="space-y-6">
-                    {data?.details.map((detail, index) => (
+                    return (
                       <div
-                        key={detail.id ?? index}
-                        className="rounded-lg border border-[#D9D9D9] p-4"
+                        key={`${imagePath}-${index}`}
+                        className="relative h-40"
                       >
-                        <div className="mb-4 font-semibold">
-                          Detail {index + 1}
-                        </div>
-                        <DetailLanguageBlock
-                          title="Turkmen"
-                          detailTitle={detail?.title_tk}
-                          text={detail?.text_tk}
-                        />
-                        <DetailLanguageBlock
-                          title="English"
-                          detailTitle={detail?.title_en}
-                          text={detail?.text_en}
-                        />
-                        <DetailLanguageBlock
-                          title="Russian"
-                          detailTitle={detail?.title_ru}
-                          text={detail?.text_ru}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={buildApiUrl(imagePath)}
+                          alt={`gallery-${index + 1}`}
+                          className="size-full rounded object-cover"
                         />
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
+
+            {Array.isArray(data?.details) && data?.details.length > 0 ? (
+              <div className="border-t border-[#D9D9D9] pt-6">
+                <div className="mb-4 text-lg font-bold">Details</div>
+                <div className="space-y-6">
+                  {data?.details.map((detail, index) => (
+                    <div
+                      key={detail.id ?? index}
+                      className="rounded-lg border border-[#D9D9D9] p-4"
+                    >
+                      <div className="mb-4 font-semibold">
+                        Detail {index + 1}
+                      </div>
+                      <DetailLanguageBlock
+                        title="Turkmen"
+                        detailTitle={detail?.title_tk}
+                        text={detail?.text_tk}
+                      />
+                      <DetailLanguageBlock
+                        title="English"
+                        detailTitle={detail?.title_en}
+                        text={detail?.text_en}
+                      />
+                      <DetailLanguageBlock
+                        title="Russian"
+                        detailTitle={detail?.title_ru}
+                        text={detail?.text_ru}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 

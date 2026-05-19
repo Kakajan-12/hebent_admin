@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
-import Sidebar from "@/Components/Sidebar";
 import { getApiErrorStatus, useApi } from "@/hooks/useApi";
 import { ClipLoader } from "react-spinners";
 
@@ -15,7 +14,7 @@ type StatisticForm = {
 
 type StatisticResponse = StatisticForm & {
   id: number;
-  count: number;
+  count: number | string;
 };
 
 const emptyForm: StatisticForm = {
@@ -65,7 +64,11 @@ const EditStatisticsPage = () => {
           title_en: row.title_en ?? "",
           title_ru: row.title_ru ?? "",
         });
-        setCountInput(String(typeof row.count === "number" ? row.count : 0));
+        setCountInput(
+          row.count === null || row.count === undefined
+            ? ""
+            : String(row.count),
+        );
       } catch (error) {
         console.error("Не удалось загрузить statistic", error);
         if (getApiErrorStatus(error) === 401) {
@@ -94,11 +97,16 @@ const EditStatisticsPage = () => {
       return;
     }
 
-    const count = Number(countInput);
-    if (!Number.isFinite(count) || !Number.isInteger(count) || count < 0) {
-      setValidationError("Count must be a non-negative integer.");
+    const trimmedCount = countInput.trim();
+    if (!/^\d+\+?$/.test(trimmedCount)) {
+      setValidationError(
+        "Count must be a non-negative integer, optionally ending with '+'.",
+      );
       return;
     }
+    const hasPlus = trimmedCount.endsWith("+");
+    const numericPart = hasPlus ? trimmedCount.slice(0, -1) : trimmedCount;
+    const count: number | string = hasPlus ? trimmedCount : Number(numericPart);
 
     try {
       setSaving(true);
@@ -123,35 +131,26 @@ const EditStatisticsPage = () => {
 
   if (!loaded) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10 flex items-center justify-center">
-          <p className="mt-8">
-            <ClipLoader size={80} color="#708DB8" />
-          </p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
 
   if (fetchError) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10">
-          <p className="mt-8 text-red-600">{fetchError}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{fetchError}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"
@@ -213,11 +212,16 @@ const EditStatisticsPage = () => {
               <Field label="Count:">
                 <input
                   value={countInput}
-                  onChange={(e) => setCountInput(e.target.value)}
-                  type="number"
-                  min={0}
-                  step={1}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (next === "" || /^\d+\+?$/.test(next)) {
+                      setCountInput(next);
+                    }
+                  }}
+                  type="text"
+                  inputMode="text"
                   className="w-full rounded-lg border border-[#D9D9D9] px-3 py-2 text-sm outline-none focus:border-[#708DB8]"
+                  placeholder="0 or 1000+"
                 />
               </Field>
             </div>

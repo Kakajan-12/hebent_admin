@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
-import Sidebar from "@/Components/Sidebar";
 import TipTapEditor from "@/Components/TipTapEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
 import ImageUploader from "./ImageUploader";
@@ -107,8 +106,7 @@ const AddSlider = () => {
   };
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-79 mr-7">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
           className="my-8 w-full  rounded-xl border border-[#D9D9D9] bg-white shadow-sm"

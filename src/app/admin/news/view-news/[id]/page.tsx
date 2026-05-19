@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import Sidebar from "@/Components/Sidebar";
 import {
   ArrowLeftIcon,
   PencilIcon,
@@ -93,22 +92,16 @@ const ViewNews = () => {
 
   if (error) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-          <p className="mt-8 text-red-600">{error}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{error}</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <ClipLoader size={80} color="#708DB8" />
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
@@ -118,9 +111,8 @@ const ViewNews = () => {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 ml-79 mr-7 py-10">
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold">View news</h1>
           <div className="flex flex-wrap items-center gap-2">
             <Link

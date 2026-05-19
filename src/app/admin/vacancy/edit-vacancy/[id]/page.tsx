@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import TipTapEditor from "@/Components/TipTapEditor";
-import Sidebar from "@/Components/Sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
 import { useApi } from "@/hooks/useApi";
 import { ClipLoader } from "react-spinners";
@@ -94,8 +93,7 @@ const EditVacancy = () => {
   if (!loaded) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10 flex items-center justify-center">
+        <div className="flex-1 py-10 flex items-center justify-center">
           <p className="mt-8 text-gray-500">
             <ClipLoader size={80} color="#708DB8" />
           </p>
@@ -107,8 +105,7 @@ const EditVacancy = () => {
   if (fetchError) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10 flex items-center justify-center">
+        <div className="flex-1 py-10 flex items-center justify-center">
           <p className="mt-8 text-red-600">{fetchError}</p>
         </div>
       </div>
@@ -117,14 +114,13 @@ const EditVacancy = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7">
+      <div className="flex-1">
         {saveError ? (
           <p className="mt-4 text-sm text-red-600">{saveError}</p>
         ) : null}
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"

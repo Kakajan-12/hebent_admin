@@ -6,7 +6,6 @@ import { EyeIcon } from "@heroicons/react/24/outline";
 import { GoChevronRight } from "react-icons/go";
 import { TrashIcon } from "lucide-react";
 import { ClipLoader } from "react-spinners";
-import Sidebar from "@/Components/Sidebar";
 import TipTapEditor from "@/Components/TipTapEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import {
@@ -306,9 +305,7 @@ const EditProject = () => {
           .map((detail) => detail.id)
           .filter((id): id is number => typeof id === "number"),
       );
-      const removedIds = originalDetailIds.filter(
-        (id) => !currentIds.has(id),
-      );
+      const removedIds = originalDetailIds.filter((id) => !currentIds.has(id));
 
       await Promise.all([
         ...removedIds.map((id) => api.delete(`/api/project-details/${id}`)),
@@ -348,370 +345,355 @@ const EditProject = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-          <ClipLoader size={80} color="#708DB8" />
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
   if (fetchError) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-          <p className="mt-8 text-red-600">{fetchError}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{fetchError}</p>
       </div>
     );
   }
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 p-10 ml-72">
-        <form
-          onSubmit={handleSubmit}
-          noValidate
-          className="mt-8 w-full rounded-xl border border-[#D9D9D9] bg-white p-6 shadow-sm"
-        >
-          <h2 className="mb-4 text-2xl font-bold">Edit project</h2>
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="w-full rounded-xl border border-[#D9D9D9] bg-white p-6 shadow-sm"
+      >
+        <h2 className="mb-4 text-2xl font-bold">Edit project</h2>
 
-          {saveError ? (
-            <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
-              {saveError}
-            </p>
-          ) : null}
+        {saveError ? (
+          <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+            {saveError}
+          </p>
+        ) : null}
 
-          <div className="mb-6 flex flex-col gap-4">
-            <Field label="Image:">
-              <ImageUploader
-                files={imageFiles}
-                setFiles={setImageFiles}
-                replaceOnDrop
-                maxFiles={1}
+        <div className="mb-6 flex flex-col gap-4">
+          <Field label="Image:">
+            <ImageUploader
+              files={imageFiles}
+              setFiles={setImageFiles}
+              replaceOnDrop
+              maxFiles={1}
+            />
+            {imageObjectUrls.length > 0 ? (
+              <PreviewCards
+                urls={imageObjectUrls}
+                onPreview={setPreviewUrl}
+                onRemove={(index) =>
+                  setImageFiles((prev) => prev.filter((_, i) => i !== index))
+                }
               />
-              {imageObjectUrls.length > 0 ? (
-                <PreviewCards
-                  urls={imageObjectUrls}
-                  onPreview={setPreviewUrl}
-                  onRemove={(index) =>
-                    setImageFiles((prev) => prev.filter((_, i) => i !== index))
-                  }
-                />
-              ) : existingImageUrl ? (
-                <PreviewCards
-                  urls={[existingImageUrl]}
-                  onPreview={setPreviewUrl}
-                  onRemove={() => setExistingImageUrl(null)}
-                />
-              ) : null}
-            </Field>
-            <Field label="Website:">
-              <input
-                value={data.website}
-                onChange={(e) => handleChange("website", e.target.value)}
-                type="text"
-                placeholder="https://example.com"
-                className="w-full rounded border border-gray-300 p-2"
+            ) : existingImageUrl ? (
+              <PreviewCards
+                urls={[existingImageUrl]}
+                onPreview={setPreviewUrl}
+                onRemove={() => setExistingImageUrl(null)}
               />
-            </Field>
+            ) : null}
+          </Field>
+          <Field label="Website:">
+            <input
+              value={data.website}
+              onChange={(e) => handleChange("website", e.target.value)}
+              type="text"
+              placeholder="https://example.com"
+              className="w-full rounded border border-gray-300 p-2"
+            />
+          </Field>
+        </div>
+
+        {isClient && (
+          <Tabs defaultValue="turkmen">
+            <TabsList>
+              <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+              <TabsTrigger value="english">English</TabsTrigger>
+              <TabsTrigger value="russian">Russian</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="turkmen" className="space-y-4 pt-4">
+              <Field label="Title:">
+                <TipTapEditor
+                  key={`title-tk-${projectId}`}
+                  content={data.title_tk}
+                  onChange={(value) => handleChange("title_tk", value)}
+                />
+              </Field>
+              <Field label="Text:">
+                <TipTapEditor
+                  key={`text-tk-${projectId}`}
+                  content={data.text_tk}
+                  onChange={(value) => handleChange("text_tk", value)}
+                />
+              </Field>
+              <Field label="Costumer:">
+                <TipTapEditor
+                  key={`costumer-tk-${projectId}`}
+                  content={data.costumer_tk}
+                  onChange={(value) => handleChange("costumer_tk", value)}
+                />
+              </Field>
+            </TabsContent>
+
+            <TabsContent value="english" className="space-y-4 pt-4">
+              <Field label="Title:">
+                <TipTapEditor
+                  key={`title-en-${projectId}`}
+                  content={data.title_en}
+                  onChange={(value) => handleChange("title_en", value)}
+                />
+              </Field>
+              <Field label="Text:">
+                <TipTapEditor
+                  key={`text-en-${projectId}`}
+                  content={data.text_en}
+                  onChange={(value) => handleChange("text_en", value)}
+                />
+              </Field>
+              <Field label="Costumer:">
+                <TipTapEditor
+                  key={`costumer-en-${projectId}`}
+                  content={data.costumer_en}
+                  onChange={(value) => handleChange("costumer_en", value)}
+                />
+              </Field>
+            </TabsContent>
+
+            <TabsContent value="russian" className="space-y-4 pt-4">
+              <Field label="Title:">
+                <TipTapEditor
+                  key={`title-ru-${projectId}`}
+                  content={data.title_ru}
+                  onChange={(value) => handleChange("title_ru", value)}
+                />
+              </Field>
+              <Field label="Text:">
+                <TipTapEditor
+                  key={`text-ru-${projectId}`}
+                  content={data.text_ru}
+                  onChange={(value) => handleChange("text_ru", value)}
+                />
+              </Field>
+              <Field label="Costumer:">
+                <TipTapEditor
+                  key={`costumer-ru-${projectId}`}
+                  content={data.costumer_ru}
+                  onChange={(value) => handleChange("costumer_ru", value)}
+                />
+              </Field>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        <div className="mt-6 rounded-xl border border-[#D9D9D9] p-4">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h3 className="text-lg font-semibold">Details</h3>
+            <button
+              type="button"
+              onClick={addDetail}
+              className="rounded bg-[#708DB8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5f7ba6]"
+            >
+              Add detail
+            </button>
           </div>
 
-          {isClient && (
-            <Tabs defaultValue="turkmen">
-              <TabsList>
-                <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
-                <TabsTrigger value="english">English</TabsTrigger>
-                <TabsTrigger value="russian">Russian</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="turkmen" className="space-y-4 pt-4">
-                <Field label="Title:">
-                  <TipTapEditor
-                    key={`title-tk-${projectId}`}
-                    content={data.title_tk}
-                    onChange={(value) => handleChange("title_tk", value)}
-                  />
-                </Field>
-                <Field label="Text:">
-                  <TipTapEditor
-                    key={`text-tk-${projectId}`}
-                    content={data.text_tk}
-                    onChange={(value) => handleChange("text_tk", value)}
-                  />
-                </Field>
-                <Field label="Costumer:">
-                  <TipTapEditor
-                    key={`costumer-tk-${projectId}`}
-                    content={data.costumer_tk}
-                    onChange={(value) => handleChange("costumer_tk", value)}
-                  />
-                </Field>
-              </TabsContent>
-
-              <TabsContent value="english" className="space-y-4 pt-4">
-                <Field label="Title:">
-                  <TipTapEditor
-                    key={`title-en-${projectId}`}
-                    content={data.title_en}
-                    onChange={(value) => handleChange("title_en", value)}
-                  />
-                </Field>
-                <Field label="Text:">
-                  <TipTapEditor
-                    key={`text-en-${projectId}`}
-                    content={data.text_en}
-                    onChange={(value) => handleChange("text_en", value)}
-                  />
-                </Field>
-                <Field label="Costumer:">
-                  <TipTapEditor
-                    key={`costumer-en-${projectId}`}
-                    content={data.costumer_en}
-                    onChange={(value) => handleChange("costumer_en", value)}
-                  />
-                </Field>
-              </TabsContent>
-
-              <TabsContent value="russian" className="space-y-4 pt-4">
-                <Field label="Title:">
-                  <TipTapEditor
-                    key={`title-ru-${projectId}`}
-                    content={data.title_ru}
-                    onChange={(value) => handleChange("title_ru", value)}
-                  />
-                </Field>
-                <Field label="Text:">
-                  <TipTapEditor
-                    key={`text-ru-${projectId}`}
-                    content={data.text_ru}
-                    onChange={(value) => handleChange("text_ru", value)}
-                  />
-                </Field>
-                <Field label="Costumer:">
-                  <TipTapEditor
-                    key={`costumer-ru-${projectId}`}
-                    content={data.costumer_ru}
-                    onChange={(value) => handleChange("costumer_ru", value)}
-                  />
-                </Field>
-              </TabsContent>
-            </Tabs>
-          )}
-
-          <div className="mt-6 rounded-xl border border-[#D9D9D9] p-4">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold">Details</h3>
-              <button
-                type="button"
-                onClick={addDetail}
-                className="rounded bg-[#708DB8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5f7ba6]"
-              >
-                Add detail
-              </button>
-            </div>
-
-            {details.length > 0 ? (
-              <div className="space-y-4">
-                {details.map((detail, index) => (
-                  <div
-                    key={`${projectId}-${detail.id ?? index}`}
-                    className="rounded-lg border border-[#e5e7eb] bg-white p-4"
-                  >
-                    <div className="mb-4 flex items-center justify-between gap-4">
+          {details.length > 0 ? (
+            <div className="space-y-4">
+              {details.map((detail, index) => (
+                <div
+                  key={`${projectId}-${detail.id ?? index}`}
+                  className="rounded-lg border border-[#e5e7eb] bg-white p-4"
+                >
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={() => toggleDetail(index)}
+                      className="flex items-center gap-2 text-left font-semibold text-[#1f2937]"
+                    >
+                      <GoChevronRight
+                        className={`size-5 text-[#A3C8FF] transition-transform ${
+                          openDetails[index] ? "rotate-90" : ""
+                        }`}
+                        aria-hidden
+                      />
+                      Detail {index + 1}
+                    </button>
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => toggleDetail(index)}
-                        className="flex items-center gap-2 text-left font-semibold text-[#1f2937]"
+                        className="inline-flex items-center gap-2 rounded border border-[#D9D9D9] px-3 py-1.5 text-sm font-semibold transition hover:bg-gray-50"
                       >
                         <GoChevronRight
-                          className={`size-5 text-[#A3C8FF] transition-transform ${
+                          className={`size-4 text-black transition-transform ${
                             openDetails[index] ? "rotate-90" : ""
                           }`}
                           aria-hidden
                         />
-                        Detail {index + 1}
                       </button>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleDetail(index)}
-                          className="inline-flex items-center gap-2 rounded border border-[#D9D9D9] px-3 py-1.5 text-sm font-semibold transition hover:bg-gray-50"
-                        >
-                          <GoChevronRight
-                            className={`size-4 text-black transition-transform ${
-                              openDetails[index] ? "rotate-90" : ""
-                            }`}
-                            aria-hidden
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeDetail(index)}
-                          className="flex items-center gap-2 rounded bg-[#708DB8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-gray-200 hover:text-black"
-                        >
-                          <TrashIcon className="size-5" />
-                          <span className="text-sm">Delete</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDetail(index)}
+                        className="flex items-center gap-2 rounded bg-[#708DB8] px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-gray-200 hover:text-black"
+                      >
+                        <TrashIcon className="size-5" />
+                        <span className="text-sm">Delete</span>
+                      </button>
                     </div>
-
-                    {isClient && openDetails[index] ? (
-                      <Tabs defaultValue="turkmen">
-                        <TabsList>
-                          <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
-                          <TabsTrigger value="english">English</TabsTrigger>
-                          <TabsTrigger value="russian">Russian</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="turkmen" className="space-y-4 pt-4">
-                          <Field label="Title:">
-                            <TipTapEditor
-                              key={`detail-${projectId}-${detail.id ?? index}-title-tk`}
-                              content={detail.title_tk}
-                              onChange={(value) =>
-                                updateDetail(index, "title_tk", value)
-                              }
-                            />
-                          </Field>
-                          <Field label="Text:">
-                            <TipTapEditor
-                              key={`detail-${projectId}-${detail.id ?? index}-text-tk`}
-                              content={detail.text_tk}
-                              onChange={(value) =>
-                                updateDetail(index, "text_tk", value)
-                              }
-                            />
-                          </Field>
-                        </TabsContent>
-
-                        <TabsContent value="english" className="space-y-4 pt-4">
-                          <Field label="Title:">
-                            <TipTapEditor
-                              key={`detail-${projectId}-${detail.id ?? index}-title-en`}
-                              content={detail.title_en}
-                              onChange={(value) =>
-                                updateDetail(index, "title_en", value)
-                              }
-                            />
-                          </Field>
-                          <Field label="Text:">
-                            <TipTapEditor
-                              key={`detail-${projectId}-${detail.id ?? index}-text-en`}
-                              content={detail.text_en}
-                              onChange={(value) =>
-                                updateDetail(index, "text_en", value)
-                              }
-                            />
-                          </Field>
-                        </TabsContent>
-
-                        <TabsContent value="russian" className="space-y-4 pt-4">
-                          <Field label="Title:">
-                            <TipTapEditor
-                              key={`detail-${projectId}-${detail.id ?? index}-title-ru`}
-                              content={detail.title_ru}
-                              onChange={(value) =>
-                                updateDetail(index, "title_ru", value)
-                              }
-                            />
-                          </Field>
-                          <Field label="Text:">
-                            <TipTapEditor
-                              key={`detail-${projectId}-${detail.id ?? index}-text-ru`}
-                              content={detail.text_ru}
-                              onChange={(value) =>
-                                updateDetail(index, "text_ru", value)
-                              }
-                            />
-                          </Field>
-                        </TabsContent>
-                      </Tabs>
-                    ) : null}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">No details added yet.</p>
-            )}
-          </div>
 
-          <div className="mt-6">
-            <Field label="Gallery:">
-              <ImageUploaderHero
-                files={galleryFiles}
-                setFiles={setGalleryFiles}
-                maxFiles={MAX_GALLERY_FILES}
+                  {isClient && openDetails[index] ? (
+                    <Tabs defaultValue="turkmen">
+                      <TabsList>
+                        <TabsTrigger value="turkmen">Turkmen</TabsTrigger>
+                        <TabsTrigger value="english">English</TabsTrigger>
+                        <TabsTrigger value="russian">Russian</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="turkmen" className="space-y-4 pt-4">
+                        <Field label="Title:">
+                          <TipTapEditor
+                            key={`detail-${projectId}-${detail.id ?? index}-title-tk`}
+                            content={detail.title_tk}
+                            onChange={(value) =>
+                              updateDetail(index, "title_tk", value)
+                            }
+                          />
+                        </Field>
+                        <Field label="Text:">
+                          <TipTapEditor
+                            key={`detail-${projectId}-${detail.id ?? index}-text-tk`}
+                            content={detail.text_tk}
+                            onChange={(value) =>
+                              updateDetail(index, "text_tk", value)
+                            }
+                          />
+                        </Field>
+                      </TabsContent>
+
+                      <TabsContent value="english" className="space-y-4 pt-4">
+                        <Field label="Title:">
+                          <TipTapEditor
+                            key={`detail-${projectId}-${detail.id ?? index}-title-en`}
+                            content={detail.title_en}
+                            onChange={(value) =>
+                              updateDetail(index, "title_en", value)
+                            }
+                          />
+                        </Field>
+                        <Field label="Text:">
+                          <TipTapEditor
+                            key={`detail-${projectId}-${detail.id ?? index}-text-en`}
+                            content={detail.text_en}
+                            onChange={(value) =>
+                              updateDetail(index, "text_en", value)
+                            }
+                          />
+                        </Field>
+                      </TabsContent>
+
+                      <TabsContent value="russian" className="space-y-4 pt-4">
+                        <Field label="Title:">
+                          <TipTapEditor
+                            key={`detail-${projectId}-${detail.id ?? index}-title-ru`}
+                            content={detail.title_ru}
+                            onChange={(value) =>
+                              updateDetail(index, "title_ru", value)
+                            }
+                          />
+                        </Field>
+                        <Field label="Text:">
+                          <TipTapEditor
+                            key={`detail-${projectId}-${detail.id ?? index}-text-ru`}
+                            content={detail.text_ru}
+                            onChange={(value) =>
+                              updateDetail(index, "text_ru", value)
+                            }
+                          />
+                        </Field>
+                      </TabsContent>
+                    </Tabs>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No details added yet.</p>
+          )}
+        </div>
+
+        <div className="mt-6">
+          <Field label="Gallery:">
+            <ImageUploaderHero
+              files={galleryFiles}
+              setFiles={setGalleryFiles}
+              maxFiles={MAX_GALLERY_FILES}
+            />
+            <p className="mt-5 text-xs text-gray-500">
+              {existingGalleryUrls.length + galleryFiles.length}/
+              {MAX_GALLERY_FILES} photos selected
+            </p>
+            {existingGalleryUrls.length > 0 ? (
+              <PreviewCards
+                urls={existingGalleryUrls}
+                onPreview={setPreviewUrl}
+                onRemove={(index) =>
+                  setExistingGalleryUrls((prev) =>
+                    prev.filter((_, i) => i !== index),
+                  )
+                }
               />
-              <p className="mt-5 text-xs text-gray-500">
-                {existingGalleryUrls.length + galleryFiles.length}/
-                {MAX_GALLERY_FILES} photos selected
-              </p>
-              {existingGalleryUrls.length > 0 ? (
-                <PreviewCards
-                  urls={existingGalleryUrls}
-                  onPreview={setPreviewUrl}
-                  onRemove={(index) =>
-                    setExistingGalleryUrls((prev) =>
-                      prev.filter((_, i) => i !== index),
-                    )
-                  }
-                />
-              ) : null}
-              {galleryObjectUrls.length > 0 ? (
-                <PreviewCards
-                  urls={galleryObjectUrls}
-                  onPreview={setPreviewUrl}
-                  onRemove={(index) =>
-                    setGalleryFiles((prev) =>
-                      prev.filter((_, i) => i !== index),
-                    )
-                  }
-                />
-              ) : null}
-            </Field>
-          </div>
+            ) : null}
+            {galleryObjectUrls.length > 0 ? (
+              <PreviewCards
+                urls={galleryObjectUrls}
+                onPreview={setPreviewUrl}
+                onRemove={(index) =>
+                  setGalleryFiles((prev) => prev.filter((_, i) => i !== index))
+                }
+              />
+            ) : null}
+          </Field>
+        </div>
 
-          <div className="mt-6 flex gap-4">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 rounded bg-[#708DB8] px-4 py-3 font-bold text-white transition hover:bg-[#5f7ba6] disabled:opacity-60"
-            >
-              {saving ? (
-                <ClipLoader color="#fff" size={16} />
-              ) : (
-                "Update project"
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/admin/projects")}
-              className="flex-1 rounded bg-gray-300 px-4 py-3 font-bold text-gray-800 transition hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-
-        {previewUrl ? (
+        <div className="mt-6 flex gap-4">
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex-1 rounded bg-[#708DB8] px-4 py-3 font-bold text-white transition hover:bg-[#5f7ba6] disabled:opacity-60"
+          >
+            {saving ? <ClipLoader color="#fff" size={16} /> : "Update project"}
+          </button>
           <button
             type="button"
-            className="fixed inset-0 z-50 flex cursor-default items-center justify-center bg-black/60 p-4"
-            onClick={() => setPreviewUrl(null)}
-            aria-label="Close preview"
+            onClick={() => router.push("/admin/projects")}
+            className="flex-1 rounded bg-gray-300 px-4 py-3 font-bold text-gray-800 transition hover:bg-gray-400"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl}
-              alt=""
-              className="max-h-[90vh] max-w-full rounded-lg object-contain shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+            Cancel
           </button>
-        ) : null}
-      </div>
+        </div>
+      </form>
+
+      {previewUrl ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-50 flex cursor-default items-center justify-center bg-black/60 p-4"
+          onClick={() => setPreviewUrl(null)}
+          aria-label="Close preview"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt=""
+            className="max-h-[90vh] max-w-full rounded-lg object-contain shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </button>
+      ) : null}
     </div>
   );
 };

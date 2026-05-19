@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
-import Sidebar from "@/Components/Sidebar";
 import Link from "next/link";
 import {
   PencilIcon,
@@ -90,8 +89,7 @@ const Mails = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 p-10 ml-72">
+      <div className="flex-1">
         <div className="mt-8">
           <div className="w-full flex justify-between">
             <h2 className="text-2xl font-bold mb-4">Mails</h2>

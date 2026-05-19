@@ -4,7 +4,6 @@ import React, { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { FiChevronDown } from "react-icons/fi";
-import Sidebar from "@/Components/Sidebar";
 import { ClipLoader } from "react-spinners";
 
 const EditCategory = () => {
@@ -71,33 +70,26 @@ const EditCategory = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-          <ClipLoader size={80} color="#708DB8" />
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-          <p className="mt-8 text-red-600">{error}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{error}</p>
       </div>
     );
   }
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-72 mr-7">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"

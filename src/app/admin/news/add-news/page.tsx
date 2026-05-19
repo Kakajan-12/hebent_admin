@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
-import Sidebar from "@/Components/Sidebar";
 import TipTapEditor from "@/Components/TipTapEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
 import ImageUploader from "@/app/admin/slider/add-slider/ImageUploader";
@@ -117,11 +116,10 @@ const AddNews = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+      <div className="flex-1 min-h-screen">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"

@@ -3,14 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
-import Sidebar from "@/Components/Sidebar";
 import TipTapEditor from "@/Components/TipTapEditor";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/Components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
 import { useApi } from "@/hooks/useApi";
 
 const hasText = (value: string) =>
@@ -76,8 +70,7 @@ const AddVacancy = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+      <div className="flex-1 py-10 min-h-screen">
         <form
           onSubmit={handleSubmit}
           className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"

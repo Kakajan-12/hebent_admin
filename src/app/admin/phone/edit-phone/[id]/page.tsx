@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
-import Sidebar from "@/Components/Sidebar";
 import { getApiErrorStatus, useApi } from "@/hooks/useApi";
 import { ClipLoader } from "react-spinners";
 
@@ -108,11 +107,8 @@ const EditPhonePage = () => {
   if (!loaded) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10 flex items-center justify-center">
-          <p className="mt-8">
-            <ClipLoader size={80} color="#708DB8" />
-          </p>
+        <div className="flex-1 flex items-center justify-center">
+          <ClipLoader size={80} color="#708DB8" />
         </div>
       </div>
     );
@@ -121,28 +117,28 @@ const EditPhonePage = () => {
   if (fetchError) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10">
-          <p className="mt-8 text-red-600">{fetchError}</p>
+        <div className="flex-1">
+          <p className="text-red-600">{fetchError}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"
             onClick={() => setIsOpen((v) => !v)}
             className="flex w-full items-center justify-between px-6 py-4 text-left"
           >
-            <h2 className="text-xl font-semibold text-[#1f2937]">Edit phone number</h2>
+            <h2 className="text-xl font-semibold text-[#1f2937]">
+              Edit phone number
+            </h2>
             <FiChevronDown
               className={`size-5 shrink-0 text-gray-500 transition-transform ${isOpen ? "" : "-rotate-90"}`}
             />
@@ -196,7 +192,9 @@ const Field = ({
   children: React.ReactNode;
 }) => (
   <div>
-    <span className="mb-2 block text-sm font-medium text-[#374151]">{label}</span>
+    <span className="mb-2 block text-sm font-medium text-[#374151]">
+      {label}
+    </span>
     {children}
   </div>
 );

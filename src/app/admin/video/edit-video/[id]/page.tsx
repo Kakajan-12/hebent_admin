@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import { ClipLoader } from "react-spinners";
-import Sidebar from "@/Components/Sidebar";
 import { buildApiUrl, getApiErrorStatus, useApi } from "@/hooks/useApi";
 
 type VideoForm = {
@@ -115,12 +114,9 @@ const EditVideoPage = () => {
 
   if (!loaded) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex flex-1 items-center justify-center py-10 ml-79 mr-7">
-          <p className="mt-8">
-            <ClipLoader size={80} color="#708DB8" />
-          </p>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="flex flex-1 items-center justify-center py-10">
+          <ClipLoader size={80} color="#708DB8" />
         </div>
       </div>
     );
@@ -128,10 +124,9 @@ const EditVideoPage = () => {
 
   if (fetchError) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7">
-          <p className="mt-8 text-red-600">{fetchError}</p>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="flex-1">
+          <p className="text-red-600">{fetchError}</p>
         </div>
       </div>
     );
@@ -140,12 +135,11 @@ const EditVideoPage = () => {
   const currentVideoUrl = data.video ? buildApiUrl(data.video).trim() : "";
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 min-h-screen py-10 ml-79 mr-7">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"
@@ -225,7 +219,9 @@ const Field = ({
   children: React.ReactNode;
 }) => (
   <div>
-    <span className="mb-2 block text-sm font-medium text-[#374151]">{label}</span>
+    <span className="mb-2 block text-sm font-medium text-[#374151]">
+      {label}
+    </span>
     {children}
   </div>
 );

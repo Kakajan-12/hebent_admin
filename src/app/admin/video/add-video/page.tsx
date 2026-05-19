@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import { ClipLoader } from "react-spinners";
-import Sidebar from "@/Components/Sidebar";
 import { getApiErrorStatus, useApi } from "@/hooks/useApi";
 
 const AddVideoPage = () => {
@@ -62,12 +61,11 @@ const AddVideoPage = () => {
   };
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 min-h-screen py-10 ml-79 mr-7">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"

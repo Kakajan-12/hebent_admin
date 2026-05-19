@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
-import Sidebar from "@/Components/Sidebar";
 import TipTapEditor from "@/Components/TipTapEditor";
 import { getApiErrorStatus, useApi } from "@/hooks/useApi";
 import { ClipLoader } from "react-spinners";
@@ -125,35 +124,26 @@ const EditTestimonialPage = () => {
 
   if (!loaded) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10 flex items-center justify-center">
-          <p className="mt-8">
-            <ClipLoader size={80} color="#708DB8" />
-          </p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
 
   if (fetchError) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-79 mr-7 py-10">
-          <p className="mt-8 text-red-600">{fetchError}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{fetchError}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"

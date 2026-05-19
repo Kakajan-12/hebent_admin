@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { PiReadCvLogo } from "react-icons/pi";
 import { StaticImageData } from "next/image";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,9 +12,7 @@ import { MdOutlineSettingsSuggest } from "react-icons/md";
 import { BiNews } from "react-icons/bi";
 import { RiContactsBook3Line } from "react-icons/ri";
 import { RiTeamLine } from "react-icons/ri";
-import { MdOutlinePrivacyTip } from "react-icons/md";
-import { LuCookie } from "react-icons/lu";
-import { FaQuestion } from "react-icons/fa";
+
 import TokenTimer from "@/Components/TokenTimer";
 
 type HebentIcon = React.ElementType | StaticImageData;

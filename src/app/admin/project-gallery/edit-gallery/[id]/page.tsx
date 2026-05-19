@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { ClipLoader } from "react-spinners";
-import Sidebar from "@/Components/Sidebar";
 import ImageUploaderHero from "@/app/admin/projects/add-project/ImageUploaderHero";
 import { buildApiUrl, getApiErrorStatus, useApi } from "@/hooks/useApi";
 
@@ -106,22 +105,18 @@ const EditProjectGalleryPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex min-h-screen flex-1 items-center justify-center py-10 ml-79 mr-7">
-          <ClipLoader color="#708DB8" size={28} />
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader color="#708DB8" size={28} />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="min-h-screen flex-1 py-10 ml-79 mr-7">
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="flex-1">
         <form
           onSubmit={handleSubmit}
-          className="mt-8 overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="overflow-hidden rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <div className="border-b border-[#D9D9D9] px-6 py-4">
             <h2 className="text-2xl font-bold">Edit project gallery</h2>

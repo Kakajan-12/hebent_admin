@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { EyeIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { ClipLoader } from "react-spinners";
-import Sidebar from "@/Components/Sidebar";
 import ImageUploaderHero from "@/app/admin/projects/add-project/ImageUploaderHero";
 import { buildApiUrl, getApiErrorStatus, useApi } from "@/hooks/useApi";
 import { getImagePath } from "@/hooks/useApi";
@@ -165,10 +164,9 @@ const NewsGalleryPage = () => {
   };
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="min-h-screen flex-1 py-10 ml-79 mr-7">
-        <div className="mt-8 rounded-xl border border-[#D9D9D9] bg-white shadow-sm">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
+        <div className="rounded-xl border border-[#D9D9D9] shadow-sm">
           <div className="border-b border-[#D9D9D9] px-6 py-4">
             <h2 className="text-2xl font-bold">News Gallery</h2>
           </div>
@@ -253,6 +251,12 @@ const NewsGalleryPage = () => {
                 <tr>
                   <td colSpan={3} className="py-8 text-center text-gray-500">
                     <ClipLoader color="#708DB8" size={28} />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-gray-500">
+                    {error}
                   </td>
                 </tr>
               ) : filteredGallery.length === 0 ? (

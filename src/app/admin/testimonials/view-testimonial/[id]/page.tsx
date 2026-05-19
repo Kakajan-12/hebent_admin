@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import Sidebar from "@/Components/Sidebar";
 import { getApiErrorStatus, useApi } from "@/hooks/useApi";
 import { ClipLoader } from "react-spinners";
 
@@ -56,39 +54,24 @@ const ViewTestimonialPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <ClipLoader size={80} color="#708DB8" />
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="mt-8 rounded-xl border border-[#D9D9D9] bg-white p-6 shadow-sm">
-            <p className="text-gray-600">Testimonial not found.</p>
-            <Link
-              href="/admin/testimonials"
-              className="mt-4 inline-block text-[#708DB8] underline"
-            >
-              Back to list
-            </Link>
-          </div>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-79 mr-7 py-10">
-        <div className="mt-8 flex items-center justify-between">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">
             Testimonial {cleanText(row?.name ?? "")}
           </h2>

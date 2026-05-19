@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import Image from "next/image";
-import Sidebar from "@/Components/Sidebar";
 import TipTapEditor from "@/Components/TipTapEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
 import ImageUploader from "../../add-slider/ImageUploader";
@@ -157,8 +156,7 @@ const EditSliderPage = () => {
   if (!loaded) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex flex-1 items-center justify-center py-10 ml-79 mr-7">
+        <div className="flex flex-1 items-center justify-center py-10">
           <ClipLoader size={80} color="#708DB8" />
         </div>
       </div>
@@ -168,8 +166,7 @@ const EditSliderPage = () => {
   if (fetchError) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7">
+        <div className="flex-1 py-10">
           <p className="mt-8 text-red-600">{fetchError}</p>
         </div>
       </div>
@@ -182,14 +179,13 @@ const EditSliderPage = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-79 mr-7">
+      <div className="flex-1">
         {saveError ? (
           <p className="mt-4 text-sm text-red-600">{saveError}</p>
         ) : null}
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"
@@ -276,7 +272,10 @@ const EditSliderPage = () => {
                   </TabsContent>
 
                   <TabsContent value="english" className="space-y-4 pt-4">
-                    <Field label="Service name:" className="text-sm font-medium">
+                    <Field
+                      label="Service name:"
+                      className="text-sm font-medium"
+                    >
                       <TipTapEditor
                         key={`service-name-en-${id}`}
                         content={data.service_name_en}
@@ -306,7 +305,10 @@ const EditSliderPage = () => {
                   </TabsContent>
 
                   <TabsContent value="turkmen" className="space-y-4 pt-4">
-                    <Field label="Service name:" className="text-sm font-medium">
+                    <Field
+                      label="Service name:"
+                      className="text-sm font-medium"
+                    >
                       <TipTapEditor
                         key={`service-name-tk-${id}`}
                         content={data.service_name_tk}

@@ -11,7 +11,6 @@ import {
   TrashIcon,
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
-import Sidebar from "@/Components/Sidebar";
 import { buildApiUrl, getApiErrorStatus, useApi } from "@/hooks/useApi";
 import { ClipLoader } from "react-spinners";
 interface ProjectsItem {
@@ -113,13 +112,10 @@ const Projects = () => {
     }
   };
 
-  if (error) return <div>{error}</div>;
-
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-        <div className="mt-8 rounded-xl border border-[#D9D9D9] bg-white shadow-sm">
+    <div className="flex min-h-screen">
+      <div className="flex-1">
+        <div className="rounded-xl border border-[#D9D9D9] bg-white shadow-sm">
           <div className="flex items-center justify-between px-6 py-4">
             <h2 className="text-2xl font-bold">Projects</h2>
             <div className="flex items-center gap-3">
@@ -179,6 +175,12 @@ const Projects = () => {
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-gray-500">
                       <ClipLoader size={80} color="#708DB8" />
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                      {error}
                     </td>
                   </tr>
                 ) : projects.length === 0 ? (

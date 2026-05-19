@@ -2,7 +2,6 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import Sidebar from "@/Components/Sidebar";
 import { DocumentIcon } from "@heroicons/react/16/solid";
 import { ClipLoader } from "react-spinners";
 const EditMail = () => {
@@ -66,57 +65,50 @@ const EditMail = () => {
     }
   };
 
-  if (loading) return;
-  <div className="flex min-h-screen">
-    <Sidebar />
-    <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-      <ClipLoader size={80} color="#708DB8" />
-    </div>
-  </div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <ClipLoader size={80} color="#708DB8" />
+      </div>
+    );
   if (error)
     return (
-      <div className="flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 py-10 ml-79 mr-7 min-h-screen">
-          <p>{error}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-600">{error}</p>
       </div>
     );
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex-1 p-10 ml-72">
-        <div className="mt-8">
-          <h1 className="text-2xl font-bold mb-4">Edit mail</h1>
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6 bg-white p-6 rounded shadow"
-          >
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Mail:
-              </label>
-              <input
-                name="mail"
-                value={data.mail}
-                onChange={handleChange}
-                type="text"
-                required
-                className="border border-gray-300 rounded p-2 w-full"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="bg text-white px-4 py-2 rounded flex items-center hover:bg-blue-700"
-            >
-              <DocumentIcon className="size-5 mr-2" />
-              Save
-            </button>
-          </form>
+      {/* <div className="mt-8"> */}
+      <h1 className="text-2xl font-bold mb-4">Edit mail</h1>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 bg-white p-6 rounded shadow"
+      >
+        <div className="mb-4">
+          <label className="block text-gray-700 font-semibold mb-2">
+            Mail:
+          </label>
+          <input
+            name="mail"
+            value={data.mail}
+            onChange={handleChange}
+            type="text"
+            required
+            className="border border-gray-300 rounded p-2 w-full"
+          />
         </div>
-      </div>
+
+        <button
+          type="submit"
+          className="bg text-white px-4 py-2 rounded flex items-center hover:bg-blue-700"
+        >
+          <DocumentIcon className="size-5 mr-2" />
+          Save
+        </button>
+      </form>
+      {/* </div> */}
     </div>
   );
 };

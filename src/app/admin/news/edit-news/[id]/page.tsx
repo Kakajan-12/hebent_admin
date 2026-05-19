@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import Image from "next/image";
 import TipTapEditor from "@/Components/TipTapEditor";
-import Sidebar from "@/Components/Sidebar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
 import {
   buildApiUrl,
@@ -136,8 +135,7 @@ const EditNews = () => {
   if (!loaded) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-72 mr-7 py-10">
+        <div className="flex-1 py-10">
           <p className="mt-8 text-gray-500">
             <ClipLoader size={80} color="#708DB8" />
           </p>
@@ -149,8 +147,7 @@ const EditNews = () => {
   if (fetchError) {
     return (
       <div className="flex">
-        <Sidebar />
-        <div className="flex-1 ml-72 mr-7 py-10">
+        <div className="flex-1 py-10">
           <p className="mt-8 text-red-600">{fetchError}</p>
         </div>
       </div>
@@ -162,14 +159,13 @@ const EditNews = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-79 mr-7">
+      <div className="flex-1">
         {saveError ? (
           <p className="mt-4 text-sm text-red-600">{saveError}</p>
         ) : null}
         <form
           onSubmit={handleSubmit}
-          className="my-8 w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
+          className="w-full rounded-xl border border-[#D9D9D9] bg-white shadow-sm"
         >
           <button
             type="button"
