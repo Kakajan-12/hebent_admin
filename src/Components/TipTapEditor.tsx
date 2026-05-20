@@ -128,6 +128,13 @@ const TipTap = ({
         class:
           "prose prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none min-h-[150px]",
       },
+      handlePaste(view, event) {
+        const text = event.clipboardData?.getData("text/plain");
+        if (!text) return false;
+        event.preventDefault();
+        view.dispatch(view.state.tr.insertText(text));
+        return true;
+      },
     },
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
