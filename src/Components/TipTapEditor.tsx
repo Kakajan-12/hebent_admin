@@ -8,7 +8,6 @@ import {
   FaUnderline,
   FaListOl,
   FaListUl,
-  FaHeading,
   FaParagraph,
   FaAlignLeft,
   FaAlignCenter,
@@ -17,6 +16,24 @@ import {
   FaLink,
   FaMinus,
 } from "react-icons/fa";
+import {
+  LuHeading1,
+  LuHeading2,
+  LuHeading3,
+  LuHeading4,
+  LuHeading5,
+  LuHeading6,
+} from "react-icons/lu";
+import type { IconType } from "react-icons";
+
+const HEADING_ICONS: Record<1 | 2 | 3 | 4 | 5 | 6, IconType> = {
+  1: LuHeading1,
+  2: LuHeading2,
+  3: LuHeading3,
+  4: LuHeading4,
+  5: LuHeading5,
+  6: LuHeading6,
+};
 import { LuPaintBucket } from "react-icons/lu";
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { Toggle } from "./ui/toggle";
@@ -97,7 +114,7 @@ const TipTap = ({
   onChange: (val: string) => void;
   placeholder?: string;
 }) => {
-  const [headingLevel, setHeadingLevel] = useState(1);
+  const [headingLevel, setHeadingLevel] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [, tick] = useReducer((n: number) => n + 1, 0);
 
   const editor = useEditor({
@@ -180,7 +197,17 @@ const TipTap = ({
     }
   }, [editor]);
 
+  useEffect(() => {
+    if (!editor) return;
+    const activeLevel = ([1, 2, 3, 4, 5, 6] as const).find((level) =>
+      editor.isActive("heading", { level }),
+    );
+    if (activeLevel !== undefined) setHeadingLevel(activeLevel);
+  }, [editor, tick]);
+
   if (!editor) return null;
+
+  const HeadingIcon = HEADING_ICONS[headingLevel];
 
   const Options = [
     {
@@ -251,8 +278,8 @@ const TipTap = ({
         <div className="w-full p-2">
           <div className="flex space-x-2 mb-2 border-b">
             <div className="relative">
-              <button type="button" className={`p-2`}>
-                <FaHeading />
+              <button type="button" className="p-2 pointer-events-none">
+                <HeadingIcon className="size-4" />
               </button>
               <select
                 value={headingLevel}
@@ -279,6 +306,7 @@ const TipTap = ({
                 type="button"
                 onClick={option.onClick}
                 pressed={option.pressed}
+                className="hover:bg-gray-100 aria-pressed:bg-blue-100 aria-pressed:text-blue-700 aria-pressed:ring-1 aria-pressed:ring-blue-300 data-[state=on]:bg-blue-100 data-[state=on]:text-blue-700 data-[state=on]:ring-1 data-[state=on]:ring-blue-300"
               >
                 {option.icon}
               </Toggle>
