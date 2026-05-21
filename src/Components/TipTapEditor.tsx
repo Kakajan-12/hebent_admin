@@ -15,6 +15,7 @@ import {
   FaAlignJustify,
   FaLink,
   FaMinus,
+  FaFont,
 } from "react-icons/fa";
 import {
   LuHeading1,
@@ -39,8 +40,11 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { Toggle } from "./ui/toggle";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
+import { FontFamily } from "@tiptap/extension-text-style/font-family";
 import Color from "@tiptap/extension-color";
 import Link from "@tiptap/extension-link";
+
+const TIMES_FONT = "'Times New Roman', serif";
 
 function parseColorToHex(color: string | undefined): string {
   if (!color) return "#000000";
@@ -125,6 +129,7 @@ const TipTap = ({
         types: ["heading", "paragraph"],
       }),
       TextStyle,
+      FontFamily,
       Color,
       Link.configure({
         openOnClick: false,
@@ -209,6 +214,13 @@ const TipTap = ({
 
   const HeadingIcon = HEADING_ICONS[headingLevel];
 
+  const timesFontActive = (() => {
+    const font = editor.getAttributes("textStyle").fontFamily as
+      | string
+      | undefined;
+    return font?.includes("Times") ?? false;
+  })();
+
   const Options = [
     {
       icon: <FaParagraph />,
@@ -229,6 +241,17 @@ const TipTap = ({
       icon: <FaUnderline />,
       onClick: () => editor.chain().focus().toggleUnderline().run(),
       pressed: editor.isActive("underline"),
+    },
+    {
+      icon: <FaFont />,
+      onClick: () => {
+        if (timesFontActive) {
+          editor.chain().focus().unsetFontFamily().run();
+        } else {
+          editor.chain().focus().setFontFamily(TIMES_FONT).run();
+        }
+      },
+      pressed: timesFontActive,
     },
     {
       icon: <FaListUl />,
