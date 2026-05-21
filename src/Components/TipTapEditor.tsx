@@ -299,7 +299,7 @@ const TipTap = ({
     <>
       <div className="flex flex-col border rounded-md">
         <div className="w-full p-2">
-          <div className="flex space-x-2 mb-2 border-b">
+          <div className="flex space-x-2 mb-2 border-b pb-1">
             <div className="relative">
               <button type="button" className="p-2 pointer-events-none">
                 <HeadingIcon className="size-4" />

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
+import ClipLoader from "react-spinners/ClipLoader";
 
 type LoginResponse = {
   token: string;
@@ -13,11 +14,12 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-
+    setLoading(true);
     try {
       const data = await api.post<
         LoginResponse,
@@ -29,6 +31,8 @@ const Login = () => {
     } catch (error) {
       console.error(error);
       setError("Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,7 +73,9 @@ const Login = () => {
           <button
             type="submit"
             className="w-full bg mt-5 text-white p-4 rounded-md font-bold cursor-pointer"
+            disabled={loading}
           >
+            {loading ? <ClipLoader color="#fff" size={15} /> : "Sign in"}
             Sign in
           </button>
         </form>
