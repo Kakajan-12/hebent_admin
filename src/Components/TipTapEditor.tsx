@@ -123,7 +123,10 @@ const TipTap = ({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+        underline: false,
+      }),
       Underline,
       TextAlign.configure({
         types: ["heading", "paragraph"],

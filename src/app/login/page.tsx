@@ -28,10 +28,10 @@ const Login = () => {
 
       localStorage.setItem("auth_token", data.token);
       router.push("/admin");
+      setLoading(false);
     } catch (error) {
       console.error(error);
       setError("Login failed");
-    } finally {
       setLoading(false);
     }
   };
@@ -76,7 +76,6 @@ const Login = () => {
             disabled={loading}
           >
             {loading ? <ClipLoader color="#fff" size={15} /> : "Sign in"}
-            Sign in
           </button>
         </form>
       </div>
