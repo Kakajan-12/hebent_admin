@@ -4,6 +4,11 @@ module.exports = {
       {
         protocol: "https",
         hostname: "api.hebent.tech",
+        pathname: "/app/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "api.hebent.tech",
         pathname: "/uploads/**",
       },
     ],

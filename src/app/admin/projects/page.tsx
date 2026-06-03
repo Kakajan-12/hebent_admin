@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
   EyeIcon,
   PencilIcon,
@@ -32,7 +31,10 @@ interface ProjectsItem {
 const getProjectImage = (project: ProjectsItem): string | null => {
   const src = project.image;
   if (!src) return null;
-  return buildApiUrl(src).replace(/\\/g, "/");
+  // Бэкенд иногда хранит серверный путь "/app/uploads/...",
+  // а файлы публично доступны по "/uploads/...".
+  const normalized = src.replace(/\\/g, "/").replace(/^\/?app\/uploads\//, "/uploads/");
+  return buildApiUrl(normalized);
 };
 
 const Projects = () => {
@@ -210,11 +212,10 @@ const Projects = () => {
                         <td className="px-2 py-4" />
                         <td className="flex justify-center px-4 py-4 border-r border-[#D8D8D8] border-dashed">
                           {imageSrc ? (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={imageSrc}
                               alt={`project ${project.id}`}
-                              width={80}
-                              height={56}
                               className="h-14 w-20 rounded-md object-cover"
                             />
                           ) : (
